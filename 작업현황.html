@@ -130,6 +130,7 @@ kbd{background:#eef1f5;border:1px solid var(--line);border-radius:5px;padding:1p
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const $ = id => document.getElementById(id);
 const CHECK = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -318,7 +319,30 @@ function open2(id){ $(id).classList.add('on'); }
 function closeModal(id){ $(id).classList.remove('on'); }
 function toast(el,msg,ok){ const e=$(el); if(!e)return; e.textContent=msg; e.style.color= ok===false?'#c0392b':'#1f8a4c'; }
 
+// ── 강사가 시간표앱(input.html)에서 입력한 담당학교를 Supabase에서 읽어 반영 ──
+const SUPA = { url:"https://sqogiblaagmmkpwwodgf.supabase.co", anonKey:"sb_publishable_JJMJVY4pC9zL25xHDf91Kg_meLV8iwT" };
+function parseSchools(v){ if(!v) return []; if(Array.isArray(v)) return v.map(s=>String(s).trim()).filter(Boolean); return String(v).split(/[\/,·\n]/).map(s=>s.trim()).filter(Boolean); }
+async function syncSchools(){
+  if(!window.supabase) return;
+  try{
+    const sb=window.supabase.createClient(SUPA.url, SUPA.anonKey);
+    const {data,error}=await sb.from('teachers').select('name,subject,schools');
+    if(error||!data) return;
+    let changed=false;
+    data.forEach(row=>{
+      const parsed=parseSchools(row.schools); if(!parsed.length) return;
+      let t=D.teachers.find(x=>x.name===row.name);
+      if(!t){ t={name:row.name,subject:row.subject||'',schools:[]}; D.teachers.push(t); }
+      if(JSON.stringify(t.schools)!==JSON.stringify(parsed)){ t.schools=parsed; changed=true; }
+      // 새 학교를 schoolsAll에도 반영
+      parsed.forEach(s=>{ if(!D.schoolsAll.includes(s)){ D.schoolsAll.push(s); changed=true; } });
+    });
+    if(changed){ save(); render(); toast('topStatus','강사 입력 담당학교 반영됨 ✓',true); }
+  }catch(e){}
+}
+
 render();
+syncSchools();
 </script>
 </body>
 </html>

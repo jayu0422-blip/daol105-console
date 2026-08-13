@@ -220,6 +220,17 @@ function toast(el,msg,ok){ const e=$(el); if(!e)return; e.textContent=msg; e.sty
 
 renderForm();
 try{ const s=localStorage.getItem('gichulDraft'); if(s) setVals(JSON.parse(s)); }catch(e){}
+// 강사 페이지(시간표 앱)에서 넘어올 때 URL 프리필: ?teacher=&subject=&school=&grade=&course=&period=
+(function(){
+  const p=new URLSearchParams(location.search);
+  const map={teacher:'instructor_name',subject:'subject',school:'school',grade:'grade',course:'course'};
+  Object.entries(map).forEach(([q,k])=>{ const v=p.get(q); if(v&&$('f_'+k)) $('f_'+k).value=v; });
+  applySubjectVisibility(); autosave();
+  const per=p.get('period'), sc=p.get('school'), tc=p.get('teacher');
+  if(per||sc||tc){ const b=document.createElement('div'); b.className='intro'; b.style.borderColor='#bfe3cd'; b.style.background='#eaf6ef'; b.style.color='#1f5f3d';
+    b.innerHTML='📊 <b>'+[per,sc].filter(Boolean).join(' · ')+'</b> 기출분석 설문'+(tc?(' ('+tc+' 선생님)'):'')+' — 강사명·학교가 자동 입력됐습니다. 시험지 분석 정보만 채워주세요.';
+    document.querySelector('.wrap').insertBefore(b, $('form')); }
+})();
 </script>
 </body>
 </html>
