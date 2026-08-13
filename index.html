@@ -154,7 +154,7 @@ kbd{background:var(--cream2);border:1px solid var(--line);border-radius:5px;padd
         <div><label class="fld">강사명</label><input type="text" id="inTeacher" placeholder="예: 유용권"></div>
         <div><label class="fld">과목</label>
           <select id="inSubject" onchange="suggestRepo()">
-            <option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option>
+            <option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option><option>관리형독서실</option>
           </select></div>
         <div><label class="fld">대상 학교/학년</label><input type="text" id="inSchool" placeholder="예: 미사고·미강고 고1~2"></div>
       </div>
@@ -235,14 +235,19 @@ kbd{background:var(--cream2);border:1px solid var(--line);border-radius:5px;padd
 
   <!-- STEP 3: 카드뉴스 -->
   <div class="step hide" id="cardStep">
-    <h2><span class="num">3</span> 카드뉴스 (남색+골드 · 인스타/유튜브 공용)</h2>
+    <h2><span class="num">3</span> 카드뉴스 (모던 에디토리얼 · 인스타/유튜브 공용)</h2>
     <div class="body">
       <div class="rowbtns">
         <button class="btn line sm" onclick="renderCards()">🔄 다시 렌더</button>
         <button class="btn gold sm" onclick="downloadCards()">⬇ 전체 다운로드(PNG)</button>
       </div>
       <div class="cards" id="cardThumbs"></div>
-      <p class="hint">카드 문구는 위 <b>블로그/인스타 탭 JSON의 cardnews</b>를 바꾸면 다시 렌더됩니다.</p>
+      <label class="fld" style="margin-top:14px">카드 문구 직접 수정 (JSON · 저장 즉시 다시 렌더)</label>
+      <textarea id="ed-cardnews" rows="8" oninput="onEditCards()"></textarea>
+      <div class="refine">
+        <input type="text" id="rf-cardnews" placeholder="AI에게 카드 수정 요청 예: '3번 카드를 더 임팩트 있게, 숫자 강조로'">
+        <button class="btn dark" onclick="refine('cardnews')">AI 수정</button>
+      </div>
     </div>
   </div>
 
@@ -263,10 +268,11 @@ kbd{background:var(--cream2);border:1px solid var(--line);border-radius:5px;padd
         </div>
         <!-- 발행 키트 -->
         <div style="border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff">
-          <b style="color:var(--navy);font-family:var(--serif);font-size:16px">📤 블로그·인스타·유튜브 — 발행 키트</b>
-          <p class="muted" style="margin:8px 0">원고 복사 + 이미지 다운로드 + 글쓰기창 바로 열기 + 순서.</p>
+          <b style="color:var(--navy);font-family:var(--serif);font-size:16px">📤 블로그·인스타·유튜브 — 발행 키트 <span style="font-weight:400;font-size:12px;color:var(--mut)">(수동 붙여넣기)</span></b>
+          <p class="muted" style="margin:8px 0">원고 복사 + 업로드 사진 다운로드 + 글쓰기창 바로 열기. <b>자동발행 아님</b>(사람이 붙여넣기).</p>
           <div class="rowbtns">
             <button class="btn line sm" onclick="copyKit('blog')">네이버 블로그 원고 복사</button>
+            <button class="btn line sm" onclick="downloadPhotos()">업로드 사진 다운로드</button>
             <button class="btn line sm" onclick="openLink('https://blog.naver.com/GoBlogWrite.naver')">네이버 글쓰기 열기</button>
           </div>
           <div class="rowbtns">
@@ -520,29 +526,38 @@ ${rules || '(없음)'}
  "landing":{"hero_badge":"","headline":"","subhead":"","types":[{"no":"01","title":"","desc":""}],"solution_title":"","solution_steps":["",""],"proof":["",""],"cta":"","coupon":""},
  "blog":{"title":"","body":"소제목(h2/h3)과 문단으로 구성, 이미지 배치 위치는 [사진1] 처럼 표기","hashtags":["",""],"cautions":["",""],"seo_notes":["",""]},
  "instagram":{"caption":"","hashtags":["",""]},
- "youtube":{"title":"","post":"","pinned_comment":""},
+ "youtube":{"title":"","post":"","hashtags":["",""],"pinned_comment":""},
  "cardnews":[{"n":1,"tone":"dark|light","kicker":"","headline":"","sub":"","big":""}]
 }
 cardnews는 정확히 10개. headline엔 \\n 줄바꿈과 **강조** 사용 가능. big은 숫자 카드만, 아니면 "".`;
 }
 
 function userPrompt(){
+  const n=S.photos.length;
+  const photoNote = n ? `\n[첨부 사진 ${n}장] 순서대로 [사진1]..[사진${n}]. 실제 사진 내용을 보고 원고를 쓰고, 블로그 body에 이 번호로 배치를 지정한다(없는 사진 지어내기 금지).` : '\n[사진 없음] body에 [사진N] 표기 쓰지 말 것.';
   return `강사명: ${$('inTeacher').value}
 과목: ${$('inSubject').value}
 대상: ${$('inSchool').value}
 전화: ${$('inPhone').value}
+${photoNote}
 
 [강사 원본 자료]
 ${$('inDraft').value}
 
-위 자료만 근거로 4종 + 카드뉴스 10장을 만들어 JSON으로만 출력.`;
+위 자료(+첨부 사진)만 근거로 4종 + 카드뉴스 10장을 만들어 JSON으로만 출력.`;
 }
 
 // ================= Claude API 호출 =================
-async function callClaude(sys, user, maxTokens=8000){
+async function callClaude(sys, user, maxTokens=8000, images){
   const key = localStorage.getItem('anthKey');
   if(!key) throw new Error('설정에서 API 키를 먼저 넣어주세요.');
   const model = localStorage.getItem('anthModel')||'claude-opus-5';
+  let content = user;
+  if(images && images.length){
+    content = images.map(u=>{ const m=/^data:(image\/[\w.+-]+);base64,(.+)$/.exec(u||'');
+      return m ? {type:'image', source:{type:'base64', media_type:m[1], data:m[2]}} : null; }).filter(Boolean);
+    content.push({type:'text', text:user});
+  }
   const res = await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{
@@ -551,7 +566,8 @@ async function callClaude(sys, user, maxTokens=8000){
       'anthropic-version':'2023-06-01',
       'anthropic-dangerous-direct-browser-access':'true'
     },
-    body:JSON.stringify({ model, max_tokens:maxTokens, messages:[{role:'user',content:user}], system:sys })
+    // thinking 끔: 생성 예산(max_tokens)을 사고에 뺏겨 JSON이 잘리는 사고 방지
+    body:JSON.stringify({ model, max_tokens:maxTokens, thinking:{type:'disabled'}, messages:[{role:'user',content}], system:sys })
   });
   if(!res.ok){ const t=await res.text(); throw new Error('API '+res.status+': '+t.slice(0,300)); }
   const j = await res.json();
@@ -559,9 +575,11 @@ async function callClaude(sys, user, maxTokens=8000){
   return txt;
 }
 function parseJSON(txt){
-  let t = txt.trim();
-  const a=t.indexOf('{'), b=t.lastIndexOf('}');
-  if(a>=0&&b>a) t=t.slice(a,b+1);
+  let t = txt.trim().replace(/^```(json)?/i,'').replace(/```$/,'').trim();
+  const oi=t.indexOf('{'), ai=t.indexOf('[');
+  const start = (oi<0)?ai : (ai<0)?oi : Math.min(oi,ai);
+  const end = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'));
+  if(start>=0&&end>start) t=t.slice(start,end+1);
   return JSON.parse(t);
 }
 
@@ -571,9 +589,11 @@ async function generateAll(){
   $('genBtn').disabled=true;
   toast('genStatus','<span class="spin"></span>생성 중… (10~30초)'); $('genStatus').innerHTML='<span class="spin"></span>생성 중… (10~30초)';
   try{
-    const txt = await callClaude(systemPrompt(), userPrompt(), 8000);
+    const imgs = S.photos.slice(0,8).map(p=>p.url);
+    const txt = await callClaude(systemPrompt(), userPrompt(), 8000, imgs);
     S.data = parseJSON(txt);
-    fillEditors(); renderAllPreviews(); renderCards(); buildTeacherMsg();
+    fillEditors(); renderAllPreviews(); buildTeacherMsg();
+    try{ renderCards(); }catch(cardErr){ console.warn('card render failed', cardErr); }
     $('resultStep').classList.remove('hide');
     $('cardStep').classList.remove('hide');
     $('deployStep').classList.remove('hide');
@@ -591,9 +611,14 @@ function fillEditors(){
   $('ed-blog').value       = JSON.stringify(S.data.blog,null,2);
   $('ed-instagram').value  = JSON.stringify(S.data.instagram,null,2);
   $('ed-youtube').value    = JSON.stringify(S.data.youtube,null,2);
+  if($('ed-cardnews')) $('ed-cardnews').value = JSON.stringify(S.data.cardnews||[],null,2);
 }
 function onEdit(sec){
   try{ S.data[sec]=JSON.parse($('ed-'+sec).value); renderPreview(sec); if(sec==='blog') renderCards(); }
+  catch(e){ /* 편집 중 JSON 깨짐은 무시 */ }
+}
+function onEditCards(){
+  try{ S.data.cardnews=JSON.parse($('ed-cardnews').value); renderCards(); }
   catch(e){ /* 편집 중 JSON 깨짐은 무시 */ }
 }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
@@ -611,10 +636,12 @@ function renderPreview(sec){
     h=`<h3>${esc(d.title)}</h3><div style="white-space:pre-wrap">${esc(d.body)}</div>`;
     h+=`<div class="chips" style="margin-top:10px">${(d.hashtags||[]).map(t=>'<span class="chip">#'+esc(t)+'</span>').join('')}</div>`;
     if((d.cautions||[]).length) h+=`<p class="muted" style="margin-top:8px"><b>유의:</b> ${(d.cautions).map(esc).join(' · ')}</p>`;
+    if((d.seo_notes||[]).length) h+=`<p class="muted" style="margin-top:4px"><b>SEO:</b> ${(d.seo_notes).map(esc).join(' · ')}</p>`;
   }else if(sec==='instagram'){
     h=`<div style="white-space:pre-wrap">${esc(d.caption)}</div><div class="chips" style="margin-top:10px">${(d.hashtags||[]).map(t=>'<span class="chip">#'+esc(t)+'</span>').join('')}</div>`;
   }else if(sec==='youtube'){
     h=`<h3>${esc(d.title)}</h3><div style="white-space:pre-wrap">${esc(d.post)}</div>`;
+    h+=`<div class="chips" style="margin-top:10px">${(d.hashtags||[]).map(t=>'<span class="chip">#'+esc(t)+'</span>').join('')}</div>`;
     if(d.pinned_comment) h+=`<div class="notice" style="margin-top:10px"><b>📌 고정댓글</b><br><span style="white-space:pre-wrap">${esc(d.pinned_comment)}</span></div>`;
   }
   $('pv-'+sec).innerHTML=h;
@@ -639,7 +666,7 @@ ${ins}`;
     const txt=await callClaude(sys,user,4000);
     S.data[sec]=parseJSON(txt);
     $('ed-'+sec).value=JSON.stringify(S.data[sec],null,2);
-    renderPreview(sec); if(sec==='blog') renderCards();
+    if(sec==='cardnews'){ renderCards(); } else { renderPreview(sec); if(sec==='blog') renderCards(); }
     $('rf-'+sec).value='';
   }catch(e){ alert('수정 실패: '+e.message); }
   btn.disabled=false; btn.textContent=old;
@@ -647,10 +674,11 @@ ${ins}`;
 
 // ================= 카드뉴스 렌더 =================
 function hl(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<span class="hl">$1</span>'); }
-function renderCards(){
+async function renderCards(){
   const list=(S.data&&S.data.cardnews)||[]; if(!list.length){ $('cardThumbs').innerHTML=''; return; }
   const stage=$('cardStage'); stage.innerHTML=''; S.cardImgs=[];
   $('cardThumbs').innerHTML='';
+  try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
   const footL='다올105 · '+($('inTeacher').value||'');
   const footR=$('inPhone').value||'';
   list.forEach((c,i)=>{
@@ -673,6 +701,7 @@ function renderCards(){
 async function downloadCards(){
   const list=(S.data&&S.data.cardnews)||[]; if(!list.length) return;
   toast('kitStatus','<span class="spin"></span>'); $('kitStatus').innerHTML='<span class="spin"></span>카드 생성 중…';
+  try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
   const stage=$('cardStage');
   for(let i=0;i<stage.children.length;i++){
     const cv=await html2canvas(stage.children[i],{scale:1,width:1080,height:1350,backgroundColor:null});
@@ -715,18 +744,30 @@ ul{max-width:560px;margin:0 auto;font-size:17px}li{margin:8px 0}
 .cta{background:var(--paper);text-align:center}
 .cta a{display:inline-block;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#2a2010;font-weight:800;font-size:19px;padding:16px 40px;border-radius:999px;text-decoration:none;margin-top:10px}
 footer{background:var(--navy);color:#9fb0c4;text-align:center;padding:30px 0;font-size:13px}
+body{padding-bottom:78px}
+.reveal{opacity:0;transform:translateY(26px);transition:.7s cubic-bezier(.2,.7,.2,1)}
+.reveal.on{opacity:1;transform:none}
+.scta{position:fixed;left:0;right:0;bottom:0;background:rgba(15,32,56,.97);padding:11px 16px;display:flex;justify-content:center;align-items:center;gap:12px;z-index:60;box-shadow:0 -4px 18px rgba(0,0,0,.22)}
+.scta span{color:#e9edf3;font-weight:600;font-size:14px}
+.scta a{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#2a2010;font-weight:800;padding:11px 24px;border-radius:999px;text-decoration:none;font-size:15px;white-space:nowrap}
+@media(max-width:520px){.scta span{display:none}}
 </style></head><body>
 <div class="hero"><div class="wrap">
   ${d.hero_badge?`<span class="badge">${esc(d.hero_badge)}</span>`:''}
   <h1>${esc(d.headline)}</h1><p>${esc(d.subhead)}</p>${heroImg}
 </div></div>
-<section><div class="wrap"><h2>우리 아이는 어느 유형일까요?</h2>${types}</div></section>
-<section class="sol"><div class="wrap"><h2>${esc(d.solution_title||'다올105의 해결 방식')}</h2><ul>${steps}</ul></div></section>
-${proof?`<section><div class="wrap"><h2>왜 다올105인가</h2><ul>${proof}</ul></div></section>`:''}
-${d.coupon?`<section><div class="wrap"><div class="coupon">🎟 ${esc(d.coupon)}</div></div></section>`:''}
-<section class="cta"><div class="wrap"><h2>${esc(d.cta||'지금 상담하세요')}</h2>
+<section class="reveal"><div class="wrap"><h2>우리 아이는 어느 유형일까요?</h2>${types}</div></section>
+<section class="sol reveal"><div class="wrap"><h2>${esc(d.solution_title||'다올105의 해결 방식')}</h2><ul>${steps}</ul></div></section>
+${proof?`<section class="reveal"><div class="wrap"><h2>왜 다올105인가</h2><ul>${proof}</ul></div></section>`:''}
+${d.coupon?`<section class="reveal"><div class="wrap"><div class="coupon">🎟 ${esc(d.coupon)}</div></div></section>`:''}
+<section class="cta reveal"><div class="wrap"><h2>${esc(d.cta||'지금 상담하세요')}</h2>
   <a href="tel:${esc(ph)}">☎ ${esc(ph)} 전화 상담</a></div></section>
 <footer>다올105 · ${esc(subj)} · ${esc(t)} (${esc(sch)}) · ☎ ${esc(ph)}</footer>
+<div class="scta"><span>${esc(t)} · 다올105 ${esc(subj)}</span><a href="tel:${esc(ph)}">☎ 지금 상담하기</a></div>
+<scr`+`ipt>
+(function(){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}});},{threshold:.14});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});})();
+<\/scr`+`ipt>
 </body></html>`;
 }
 function previewLandingHTML(){
@@ -783,7 +824,7 @@ function kitText(sec){
   const d=S.data[sec]||{};
   if(sec==='blog') return `${d.title}\n\n${d.body}\n\n${(d.hashtags||[]).map(h=>'#'+h).join(' ')}`;
   if(sec==='instagram') return `${d.caption}\n\n${(d.hashtags||[]).map(h=>'#'+h).join(' ')}`;
-  if(sec==='youtube') return `${d.title}\n\n${d.post}\n\n[고정댓글]\n${d.pinned_comment||''}`;
+  if(sec==='youtube') return `${d.title}\n\n${d.post}\n\n${(d.hashtags||[]).map(h=>'#'+h).join(' ')}\n\n[고정댓글]\n${d.pinned_comment||''}`;
   return '';
 }
 async function copyKit(sec){
@@ -791,6 +832,15 @@ async function copyKit(sec){
   catch(e){ toast('kitStatus','복사 실패 — 편집창에서 직접 복사하세요.',false); }
 }
 function openLink(u){ window.open(u,'_blank'); }
+async function downloadPhotos(){
+  if(!S.photos.length){ toast('kitStatus','업로드된 사진이 없습니다.',false); return; }
+  for(let i=0;i<S.photos.length;i++){
+    const p=S.photos[i]; const ext=(/^data:image\/(\w+)/.exec(p.url)||[])[1]||'jpg';
+    const a=document.createElement('a'); a.href=p.url; a.download=`사진${i+1}.${ext}`; a.click();
+    await new Promise(r=>setTimeout(r,200));
+  }
+  toast('kitStatus','사진 '+S.photos.length+'장 다운로드 ✓ (블로그 [사진N] 순서대로)',true);
+}
 
 // ================= 강사 회신 메시지 =================
 function buildTeacherMsg(){
@@ -804,7 +854,7 @@ async function copyTeacher(){
 }
 
 // 레포명 자동추천 (과목→daol105-xxx)
-const REPO_MAP={'수학':'math','영어':'english','국어':'gukeo','과학':'science','사회':'social'};
+const REPO_MAP={'수학':'math','영어':'english','국어':'gukeo','과학':'science','사회':'social','관리형독서실':'studyroom'};
 function suggestRepo(){ const r=$('inRepo'); if(!r.value.trim()){ r.value='daol105-'+(REPO_MAP[$('inSubject').value]||'landing'); updateLiveUrl(); } }
 
 // 레포명 바뀌면 URL 갱신

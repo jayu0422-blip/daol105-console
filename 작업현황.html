@@ -142,15 +142,22 @@ const DEFAULT = {
     {name:'임결', subject:'수학과 원장', schools:['미사고','미강고','하남고']},
     {name:'김영하', subject:'국어(국어과 원장)', schools:['미사고','미강고','하남고']},
     {name:'민귀홍', subject:'영어', schools:['미사고','미강고','하남고']},
+    {name:'황웅', subject:'영어', schools:['미사고','미강고','하남고']},
     {name:'이정관', subject:'수능 대표강사', schools:['미사고','미강고','하남고']},
-    {name:'정영주', subject:'관리형독서실 담임', schools:['미사고','미강고','하남고']}
+    {name:'정영주', subject:'관리형독서실 담임', schools:['미사고','미강고','하남고']},
+    {name:'윤재영', subject:'학원 대표원장', schools:['미사고','미강고','하남고']}
   ],
   done: {}
 };
 let D = load();
 
 function load(){
-  try{ const s=localStorage.getItem('daolTasks'); if(s) return JSON.parse(s); }catch(e){}
+  try{ const s=localStorage.getItem('daolTasks'); if(s){ const d=JSON.parse(s);
+    // 기본 로스터에 있는데 저장본에 없는 강사(예: 황웅·윤재영) 자동 보강
+    if(!Array.isArray(d.teachers)) d.teachers=[];
+    const have=new Set(d.teachers.map(t=>t.name));
+    DEFAULT.teachers.forEach(dt=>{ if(!have.has(dt.name)) d.teachers.push(JSON.parse(JSON.stringify(dt))); });
+    return d; } }catch(e){}
   return JSON.parse(JSON.stringify(DEFAULT));
 }
 function save(){ localStorage.setItem('daolTasks', JSON.stringify(D)); }
