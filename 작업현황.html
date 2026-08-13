@@ -77,9 +77,9 @@ kbd{background:#eef1f5;border:1px solid var(--line);border-radius:5px;padding:1p
 
 <div class="wrap">
   <div class="notice">
-    시험기간이 끝나면 <b>새 회차 생성</b>으로 담당학교별 필수작업이 <b>미제출</b>로 뜹니다.
-    체크(제출완료)하면 사라지고, 남은 미제출은 <b>해당 강사에게 알림 문구</b>를 만들어 보냅니다.
-    (여러 명이 실시간 공유 + 자동발송은 <b>2단계: Supabase+알림톡</b> 연동 예정 — 지금은 이 브라우저 저장/백업 방식)
+    <b>2026~2027 시험 회차가 미리 세팅</b>돼 있고, 접속하면 <b>날짜에 맞는 현재 회차</b>가 자동 선택되어 담당학교별 작업이 <b>미제출</b>로 뜹니다.
+    강사가 <b>기출분석 설문</b>을 작성해 인포에 전달 → 인포가 콘솔에 입력해 4종 생성·배포. 체크(제출완료)하면 사라지고, 남은 미제출은 <b>해당 강사 알림 문구</b>를 만듭니다.
+    (실시간 공유 + 자동발송은 <b>2단계: Supabase+알림톡</b> — 지금은 이 브라우저 저장/백업)
   </div>
 
   <div class="summary" id="summary"></div>
@@ -132,31 +132,44 @@ kbd{background:#eef1f5;border:1px solid var(--line);border-radius:5px;padding:1p
 const $ = id => document.getElementById(id);
 const CHECK = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+// 2026~2027 시험 회차 사전 세팅 (start = 시험 종료 후 '작업 시작' 대략일; 학교마다 달라 조정 가능)
+const PERIODS = [
+  {label:'2026 2학기 중간', start:'2026-10-19'},
+  {label:'2026 2학기 기말', start:'2026-12-14'},
+  {label:'2027 1학기 중간', start:'2027-05-03'},
+  {label:'2027 1학기 기말', start:'2027-07-05'},
+  {label:'2027 2학기 중간', start:'2027-10-18'},
+  {label:'2027 2학기 기말', start:'2027-12-13'}
+];
+function today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function currentPeriodLabel(){ const t=today(); let cur=PERIODS[0].label; for(const p of PERIODS){ if(p.start<=t) cur=p.label; } return cur; }
+function periodInfo(label){ return PERIODS.find(p=>p.label===label); }
+
 const DEFAULT = {
-  period: '2026-2학기 중간',
-  periods: ['2026-2학기 중간'],
-  tasks: ['기출분석','홍보 랜딩','블로그 포스팅','인스타 카드','유튜브'],
-  schoolsAll: ['미사고','미강고','하남고'],
+  v: 3,
+  period: currentPeriodLabel(),
+  periods: PERIODS.map(p=>p.label),
+  tasks: ['강사 설문(필수정보)','기출분석 랜딩','블로그 포스팅','인스타 카드뉴스','유튜브 게시글'],
+  schoolsAll: ['미강중','윤슬중','은가람중','미사중','미사강변고','미사고','하남고'],
   teachers: [
-    {name:'유용권', subject:'수학', schools:['미사고','미강고','하남고']},
-    {name:'임결', subject:'수학과 원장', schools:['미사고','미강고','하남고']},
-    {name:'김영하', subject:'국어(국어과 원장)', schools:['미사고','미강고','하남고']},
-    {name:'민귀홍', subject:'영어', schools:['미사고','미강고','하남고']},
-    {name:'황웅', subject:'영어', schools:['미사고','미강고','하남고']},
-    {name:'이정관', subject:'수능 대표강사', schools:['미사고','미강고','하남고']},
-    {name:'정영주', subject:'관리형독서실 담임', schools:['미사고','미강고','하남고']},
-    {name:'윤재영', subject:'학원 대표원장', schools:['미사고','미강고','하남고']}
+    {name:'유용권', subject:'수학(중등)', schools:['미강중','윤슬중','은가람중','미사중']},
+    {name:'임결', subject:'수학(고등)', schools:['미사강변고','미사고','하남고']},
+    {name:'김영하', subject:'국어(고등)', schools:['미사고','미사강변고','하남고']},
+    {name:'민귀홍', subject:'영어(고등)', schools:['미사강변고','미사고','하남고']},
+    {name:'황웅', subject:'영어', schools:['미사고','하남고']},
+    {name:'이정관', subject:'수능(고등)', schools:['미사고','미사강변고','하남고']},
+    {name:'정영주', subject:'관리형독서실', schools:['미사고','미사강변고','하남고']}
   ],
   done: {}
 };
 let D = load();
+D.period = currentPeriodLabel();  // 접속 시 항상 '현재 시기' 자동 선택
 
 function load(){
   try{ const s=localStorage.getItem('daolTasks'); if(s){ const d=JSON.parse(s);
-    // 기본 로스터에 있는데 저장본에 없는 강사(예: 황웅·윤재영) 자동 보강
-    if(!Array.isArray(d.teachers)) d.teachers=[];
-    const have=new Set(d.teachers.map(t=>t.name));
-    DEFAULT.teachers.forEach(dt=>{ if(!have.has(dt.name)) d.teachers.push(JSON.parse(JSON.stringify(dt))); });
+    if(d.v!==DEFAULT.v) return JSON.parse(JSON.stringify(DEFAULT));  // 스키마·일정·배정 변경 → 초기화
+    d.periods = DEFAULT.periods.slice();  // 일정은 항상 최신
+    if(!Array.isArray(d.teachers)) d.teachers=JSON.parse(JSON.stringify(DEFAULT.teachers));
     return d; } }catch(e){}
   return JSON.parse(JSON.stringify(DEFAULT));
 }
@@ -187,8 +200,10 @@ function render(){
   // summary
   let total=0, done=0;
   D.teachers.forEach(t=>t.schools.forEach(s=>D.tasks.forEach(task=>{ total++; if(D.done[key(t.name,s,task)]) done++; })));
+  const pi=periodInfo(D.period), t=today();
+  const pstat = pi ? (pi.start>t ? '예정 · 작업 '+pi.start+'~' : '작업 진행 중 · '+pi.start+'~') : '현재 회차';
   $('summary').innerHTML=
-    `<div class="stat"><b>${D.period}</b><span>현재 회차</span></div>`+
+    `<div class="stat"><b>${esc(D.period)}</b><span>${esc(pstat)}</span></div>`+
     `<div class="stat green"><b>${done}</b><span>제출 완료</span></div>`+
     `<div class="stat red"><b>${total-done}</b><span>미제출</span></div>`+
     `<div class="stat"><b>${total?Math.round(done/total*100):0}%</b><span>진행률</span></div>`;
