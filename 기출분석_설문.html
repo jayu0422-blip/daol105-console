@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>다올105 기출분석 설문 (강사용)</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c2530;--mut:#7b8493;--line:#e7eaef;--brand:#0f2038;--accent:#2f6feb;--ok:#1f8a4c;--radius:14px;--sans:"Pretendard",system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.55}
+.wrap{max-width:820px;margin:0 auto;padding:0 16px}
+header.top{background:var(--brand);color:#fff;position:sticky;top:0;z-index:20}
+header.top .wrap{display:flex;align-items:center;gap:10px;height:58px;flex-wrap:wrap}
+.title{font-weight:800;font-size:17px}.title b{color:#e3c877}
+.spacer{flex:1}
+.btn{font-family:var(--sans);font-weight:700;border:0;border-radius:9px;padding:9px 14px;cursor:pointer;font-size:13.5px;transition:.15s}
+.btn:active{transform:translateY(1px)}
+.btn.accent{background:var(--accent);color:#fff}.btn.ok{background:var(--ok);color:#fff}
+.btn.line{background:#fff;color:var(--brand);border:1px solid var(--line)}
+.btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
+.btn.sm{padding:7px 11px;font-size:12.5px}
+.intro{background:#eef4ff;border:1px solid #cfe0ff;border-radius:12px;padding:13px 15px;font-size:13px;color:#274b8f;margin:16px 0}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:14px 0;overflow:hidden}
+.sec>h2{margin:0;padding:13px 18px;font-size:15px;background:#fbfcfd;border-bottom:1px solid var(--line);color:var(--brand)}
+.sec .b{padding:16px 18px}
+.fld{margin-bottom:14px}
+.fld:last-child{margin-bottom:0}
+label.q{display:block;font-weight:700;font-size:13.5px;margin:0 0 6px}
+label.q .subj{display:inline-block;background:#eaf1ff;color:var(--accent);border-radius:5px;font-size:11px;padding:1px 7px;margin-right:6px;vertical-align:1px}
+input[type=text],select,textarea{width:100%;font-family:var(--sans);font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+textarea{resize:vertical;line-height:1.5;min-height:64px}
+::placeholder{color:#aab3c0;font-size:12.5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+.subjfield{display:none}
+.subjfield.on{display:block}
+.hide{display:none!important}
+.actions{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(245,246,248,0),var(--bg) 30%);padding:14px 0 24px;display:flex;gap:8px;flex-wrap:wrap}
+.out{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:8px 0 20px}
+.out h3{margin:0 0 8px;font-size:15px}
+.out textarea{min-height:280px;font-size:13px;white-space:pre;font-family:ui-monospace,Menlo,Consolas,monospace}
+.status{font-size:13px;min-height:18px;padding:4px 0;color:var(--ok)}
+.hint{font-size:12px;color:var(--mut);margin:5px 0 0}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <span class="title">다올105 <b>기출분석 설문</b> · 강사용</span>
+  <span class="spacer"></span>
+  <button class="btn ghost sm" onclick="loadExample()">예시 채우기(윤다올)</button>
+  <button class="btn ghost sm" onclick="clearAll()">비우기</button>
+</div></header>
+
+<div class="wrap">
+  <div class="intro">
+    <b>이 설문 = 좋은 기출분석 원고의 재료입니다.</b> 시험지를 직접 분석한 <b>강사만 아는 정보</b>(저번·작년 시험과의 차이, 1등급/A등급 가른 문제, 킬러문항, 우리 대비방식 등)를 채워주세요.
+    <b>모르는 값은 비워두세요</b>(빈칸은 원고에 지어내지 않습니다). 다 쓰면 <b>맨 아래 '인포 전달용 생성'</b> → 나온 텍스트를 인포에 전달하면, 인포가 콘솔에 붙여넣어 <b>랜딩·블로그·인스타·유튜브 4종을 자동 생성·배포</b>합니다.
+  </div>
+
+  <div id="form"></div>
+
+  <div class="actions">
+    <button class="btn ok" onclick="genOutput()">📄 인포 전달용 생성</button>
+    <button class="btn line" onclick="saveDraft()">임시 저장</button>
+    <span class="status" id="topStatus"></span>
+  </div>
+
+  <div class="out hide" id="outBox">
+    <h3>📤 인포 전달용 텍스트 <span class="hint" style="font-weight:400">— 복사해서 인포에게 보내세요 (또는 콘솔 '강사 자료' 칸에 붙여넣기)</span></h3>
+    <textarea id="outText" readonly></textarea>
+    <div class="actions" style="position:static;padding:10px 0 0">
+      <button class="btn accent" onclick="copyOut()">복사</button>
+      <button class="btn line" onclick="downloadOut()">TXT 다운로드</button>
+      <span class="status" id="outStatus"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const SUBJECTS = ['국어','영어','수학'];
+const SCHOOLS = ['미강중','윤슬중','은가람중','미사중','미사강변고','미사고','하남고','기타(직접입력)'];
+
+const SECTIONS = [
+ {title:'1. 강사·학교·시험 식별', fields:[
+   {key:'instructor_name',label:'강사명',type:'text',ph:'예: 윤다올'},
+   {key:'subject',label:'과목',type:'select',options:SUBJECTS},
+   {key:'school',label:'학교',type:'select',options:SCHOOLS},
+   {key:'grade',label:'학년',type:'text',ph:'예: 1학년 / 중3'},
+   {key:'course',label:'과목·과정(세부)',type:'text',ph:'예: 공통영어1 / 공통수학1 / 공통국어1 / 동아 윤정미'},
+   {key:'exam_name',label:'시험명(차수)',type:'text',ph:'예: 2025학년도 1학기 기말고사(2차)'},
+   {key:'exam_year',label:'시행 학년도',type:'text',ph:'예: 2025'},
+   {key:'exam_scope',label:'시험범위(단원·페이지·작품·유닛)',type:'textarea',ph:"수학=단원·페이지·유형서 / 영어=교과서 과·부교재 강·모의지문 / 국어=작품·문법단원·비문학(무범위면 '무범위' 명시)"},
+   {key:'textbook',label:'교과서·부교재(출판사·저자)',type:'textarea',ph:'예: 교과서 능률(김성곤) / 부교재 수능특강 라이트 · 학평·EBS'},
+ ]},
+ {title:'2. 시험 개요(형식·출처·서술형)', fields:[
+   {key:'format_facts',label:'시험 형식 팩트(총 문항·객/서 비율·시간·듣기)',type:'textarea',ph:'예: 총 25문항 100점 45분. 객관식 19(76점)+서술형 6(24점). 듣기 미포함.'},
+   {key:'source_mix',label:"출처·교재 비중(각 %, 추정이면 '강사 추정')",type:'textarea',ph:'예: (강사 추정) 교과서 30%·부교재변형 45%·외부 25%. 지문 18개 중 교과서 8·학평 5·EBS 3·외부 2'},
+   {key:'written_response',label:'서술형(문항·배점·부분점수·감점 포인트)',type:'textarea',ph:"예: 6문항 24점. 조건영작 3·요약 2·배열 1. 철자·수일치 엄격 감점 / 수학이면 '경우 나눈 근거' 미서술 시 정답도 감점"},
+ ]},
+ {title:'3. 출제 분석(난이도·변별·흐름)', fields:[
+   {key:'difficulty_stats',label:"체감 난이도·반평균·등급컷(아는 값만, 추정은 '체감')",type:'textarea',ph:'예: 체감 상. 반 평균 62(직전 71↓). 등급컷 미공개 → 체감 1등급 84 안팎. (없는 수치 창작 금지)'},
+   {key:'time_pressure',label:'시간 부족 여부',type:'textarea',ph:"예: 지문 늘고 시간 그대로 — 상위권도 뒤 서술형 못 품. 없으면 '시간 여유 있었음'"},
+   {key:'killer',label:'킬러문항(번호·배점·단원 + 왜 어려웠나)',type:'textarea',ph:'왜=계산량/개념융합/함정/발상/추론. 예: 20번(4점,순열융합)=발상 함정, 21번=케이스 나눔'},
+   {key:'distractor_trap',label:'객관식 변별·매력적 오답(왜 낚이나)',type:'textarea',ph:"예: 14번 판별식 부호 반대로 하면 3번이 답처럼 / 영어면 'not all' 부분부정·지시어 오독"},
+   {key:'grade_divider',label:'1등급·A(90점)를 가른 경계 문항 1~2개',type:'textarea',ph:'예: 서술형 조건영작 2번+외부지문 빈칸추론에서 90점대가 3~4점 잃어 A/B 갈림'},
+   {key:'common_mistakes',label:'반복 실수·최다 오답 패턴(왜 틀리나)',type:'textarea',ph:"예: 문법을 '느낌'으로 처리→문장삽입 연결어 무시 / 수학이면 부호 실수·경우 못 나눔"},
+   {key:'trend',label:'출제 흐름(직전 회차 + 작년 대비 변화·반복 습관)',type:'textarea',ph:'예: 직전 대비 외부지문 5%→11%↑·서술형 16→24점↑. 작년 대비 지문 길어짐. 3년째 특정 유형 고정'},
+   {key:'math_signature',label:'시그니처(킬러 단원·배점 + 계산량/발상형 + 서술형 감점)',type:'textarea',subject:'수학',ph:"예: 3년째 '경우의 수+확률' 킬러. 21번 3케이스라 아는 학생도 시간 소모. 서술형 근거 미서술 -2점"},
+   {key:'eng_external_variant',label:'외부지문·변형지문 비중과 등장 방식',type:'textarea',subject:'영어',ph:'예: 약 11% 외부지문. 교과서도 순서배열·삽입으로 5문항 변형. 해석만 외운 학생 붕괴'},
+   {key:'eng_grammar',label:'어법 문제 유형·비중(단골 포인트)',type:'textarea',subject:'영어',ph:'예: 어법 3문항. 관계사vs접속사, 병렬, 수일치, 분사 능/수동'},
+   {key:'eng_vocab',label:'어휘 문제 유형(문맥/영영정의/반의어 함정)',type:'textarea',subject:'영어',ph:'예: 어휘 2문항. 문맥상 쓰임(반의어 함정)+영영정의. 뜻만 외운 학생 오답'},
+   {key:'eng_rote_fail',label:'통암기하면 반드시 틀리는 지점(필패)',type:'textarea',subject:'영어',ph:'예: 순서만 외움→삽입/배열 붕괴, 해석만→요지 오답, 뜻만→문맥 함정. 3~4개 놓쳐 한 등급 하락'},
+   {key:'kor_area_weight',label:'영역별 비중(문학/독서/문법/화작 문항·%)',type:'textarea',subject:'국어',ph:'예: 문학 48%/독서 28%/문법 20%/화작 4%. 이번엔 문법(음운변동) 배점↑로 등급 갈림'},
+   {key:'kor_out_of_scope',label:'범위 밖 출제(무범위 비문학·외부작품 몇 문항)',type:'textarea',subject:'국어',ph:"예: 처음 보는 과학지문 3문항+외부 현대시 1편 〈보기〉. 4문항 '수업 밖'. 없으면 '없음'"},
+   {key:'kor_bogi',label:'〈보기〉 결합 문항(개수·유형·실점)',type:'textarea',subject:'국어',ph:"예: 〈보기〉 5문항(작품비교/이론적용/규정적용). 이론적용형 오답 최다 — 줄거리는 아는데 '틀'로 못 읽음"},
+ ]},
+ {title:'4. 우리 수업 대비(차별점)', fields:[
+   {key:'our_method',label:"우리 학원의 이 시험 대비 방식(루틴·자체교재·테스트, '남다른 한 가지')",type:'textarea',ph:'실제 운영하는 것만. 예: 전 지문 변형 문제은행 / 서술형 매주 첨삭 / 외부지문 출처 선제학습 / 시간압박 미니모의. 남다른 점: 오답 급소 체크리스트'},
+   {key:'parent_misconception',label:'학부모 오해·흔한 실패 공부법 & 학교 특이사항',type:'textarea',ph:"예: '교과서만 외우면 된다' 오해 큼. 실제 등급은 부교재·외부지문·서술형에서 갈림. 실패법: 통암기·문법 느낌처리"},
+ ]},
+ {title:'5. 강사 권위·성과(정직)', fields:[
+   {key:'instructor_bio',label:'강사 이력·전문성(검증 가능한 사실만, 합격/등급 수치 제외)',type:'textarea',ph:'예: 윤다올 — 한양대 영어교육과, 고등 내신·수능 영어 8년. (합격·등급 수치는 확인 자료 없어 미기재) — 없으면 공란'},
+   {key:'next_action',label:'다음 실행·혜택(실제 있는 것만: 개강일·무료 진단 등)',type:'textarea',ph:'예: 2학기 중간 대비반 8/25 개강, 무료 기출 진단 30분(예약제). 할인 등 미확정은 미표기'},
+ ]},
+];
+
+const EXAMPLE = {
+ instructor_name:'윤다올', subject:'영어', school:'미사강변고', grade:'1학년', course:'공통영어1',
+ exam_name:'2025학년도 1학기 기말고사(2차)', exam_year:'2025',
+ exam_scope:'교과서 능률(김성곤) Lesson 3~4, 수능특강 라이트 5~7강, 3월 학평 지문 3개, EBS 외부지문 2개',
+ textbook:'교과서 능률(김성곤) / 부교재 수능특강 라이트 · 학평·EBS 기출 변형',
+ format_facts:'총 25문항 100점 45분. 객관식 19문항 76점 + 서술형 6문항 24점. 듣기 미포함(지필 100%). 지문이 길어 시간이 빠듯.',
+ source_mix:'(강사 추정) 교과서 원문 그대로 약 30% · 부교재/변형 약 45% · 외부지문 약 25%. 본문 지문 18개 중 교과서 8개(44%)·학평 5개(28%)·EBS 3개(17%)·완전 외부 2개(11%).',
+ written_response:'6문항 24점(전체 24%). 조건영작 3(주어진 단어 어형변화 필수)·요약 빈칸 2·문장배열 1. 철자·수일치 엄격 감점, 부분점수 거의 없음.',
+ difficulty_stats:'체감 난도 상. 반 평균 체감 하락, 90점 이상 소수. (등급컷은 학교 미공개 — 수치 미기재)',
+ time_pressure:"지문은 늘고 시간은 그대로 — 상위권도 뒤 서술형을 못 푸는 '시간 부족형' 세트.",
+ killer:'외부지문 빈칸추론 2문항과 영작 서술형(어순+수일치). 발상과 정확도를 동시에 요구한 데다 시간 압박으로 뒤 문항이 무너짐.',
+ distractor_trap:"지시어 it/this 대상 오독, 'not all~' 부분부정 함정 선지, 문장삽입에서 연결어 무시하고 '어울려 보이는 곳'에 넣게 유도.",
+ grade_divider:'서술형 조건영작 2번(어형변화 함정)+외부지문 빈칸추론. 90점대 학생 다수가 이 2문항에서 3~4점을 잃어 A/B가 갈림. 객관식은 대개 맞히지만 서술형 정확도가 최종 등급을 결정.',
+ common_mistakes:"문법을 규칙이 아니라 '느낌'으로 처리 → 문장삽입 지시어·연결어 무시, 조건영작 시제·수일치 감점.",
+ trend:"직전 중간 대비 외부지문 5%→11%↑, 서술형 16점→24점↑, 어휘 단순매칭→문맥추론 상향. 작년 대비 지문 길어지고 빈칸·순서 유형 증가, 함정 선지 정교화. 흐름은 명확히 '수능형·이해 중심'.",
+ eng_external_variant:'약 11%가 수업 미노출 외부지문. 교과서 지문도 순서배열·문장삭제 후 삽입위치 묻기 등으로 5문항 변형. 해석만 외운 학생은 변형된 순간 무너짐.',
+ eng_grammar:'어법 3문항. 밑줄 5개 중 틀린 것 고르기 2 + 옳은 것 고르기 1. 단골: 관계사 vs 접속사, 병렬구조, 동사 수일치, 분사 능동/수동.',
+ eng_vocab:'어휘 2문항. 문맥상 낱말 쓰임(밑줄 어휘 반의어 함정) + 영영정의 매칭. 단순 뜻 매칭 없음 → 뜻만 외운 학생은 문맥 반전에서 오답.',
+ eng_rote_fail:"①순서만 외운 학생→문장삽입·순서배열 붕괴 ②해석만 외운 학생→'왜'를 묻는 요지·주장 오답 ③단어 뜻만 외운 학생→문맥 반의어 함정. '이해 없이 외운' 학생이 서술형+변형+추론에서 3~4개 놓쳐 한 등급 미끄러짐.",
+ our_method:'①교과서·부교재 전 지문을 순서배열·문장삽입·빈칸으로 변형한 자체 문제은행(원문 암기가 아니라 구조 이해를 강제) ②서술형 매주 조건영작 실전+빨간펜 첨삭(철자·수일치까지) ③기출 외부지문 출처(학평·EBS) 범위 선제 학습 ④실전 시간압박 미니모의. 남다른 점: 오답 급소 체크리스트.',
+ parent_misconception:"'교과서만 외우면 된다'·'학교 수업만으로 충분'이라는 오해가 큼. 실제 등급은 부교재·외부지문·서술형에서 갈리는데 교과서 점수만 보고 안심하다 기말에 무너지는 패턴이 반복. 실패 공부법: 지문 통암기, 문법 느낌 처리, 서술형 방심.",
+ instructor_bio:'윤다올 — 한양대 영어교육과, 고등 내신·수능 영어 8년, 미사 지역 고교 내신 대비 전담. (합격·등급 상승 수치는 확인된 자료가 없어 미기재)',
+ next_action:'2학기 중간 대비반 8/25 개강, 무료 기출 진단테스트 30분(예약제). 할인 등 미확정 사항은 표기하지 않음.',
+};
+
+function fieldHtml(f){
+  const subjAttr = f.subject ? `data-subj="${f.subject}"` : '';
+  const cls = f.subject ? 'fld subjfield' : 'fld';
+  const badge = f.subject ? `<span class="subj">${f.subject} 전용</span>` : '';
+  let input;
+  if(f.type==='select'){
+    input = `<select id="f_${f.key}" onchange="onChange('${f.key}')">`+
+      `<option value="">선택</option>`+f.options.map(o=>`<option>${o}</option>`).join('')+`</select>`;
+  }else if(f.type==='textarea'){
+    input = `<textarea id="f_${f.key}" placeholder="${(f.ph||'').replace(/"/g,'&quot;')}" oninput="autosave()"></textarea>`;
+  }else{
+    input = `<input type="text" id="f_${f.key}" placeholder="${(f.ph||'').replace(/"/g,'&quot;')}" oninput="autosave()">`;
+  }
+  return `<div class="${cls}" ${subjAttr}><label class="q">${badge}${f.label}</label>${input}</div>`;
+}
+function renderForm(){
+  $('form').innerHTML = SECTIONS.map(sec=>{
+    // section 1: name/subject/school/grade/course in grid, rest full
+    const inner = sec.fields.map(fieldHtml).join('');
+    return `<div class="sec"><h2>${sec.title}</h2><div class="b">${inner}</div></div>`;
+  }).join('');
+  applySubjectVisibility();
+}
+function onChange(key){ if(key==='subject') applySubjectVisibility(); autosave(); }
+function applySubjectVisibility(){
+  const subj = ($('f_subject')&&$('f_subject').value)||'';
+  document.querySelectorAll('.subjfield').forEach(el=>{
+    el.classList.toggle('on', el.dataset.subj===subj);
+  });
+}
+function getVals(){ const v={}; SECTIONS.forEach(s=>s.fields.forEach(f=>{ const el=$('f_'+f.key); if(el) v[f.key]=el.value; })); return v; }
+function setVals(v){ SECTIONS.forEach(s=>s.fields.forEach(f=>{ const el=$('f_'+f.key); if(el&&v[f.key]!=null) el.value=v[f.key]; })); applySubjectVisibility(); }
+
+function buildOutput(){
+  const v=getVals(); const subj=v.subject||'';
+  let out='════════════════════════════════════\n다올105 기출분석 · 강사 입력 자료\n작성 강사: '+(v.instructor_name||'(미기재)')+'  |  과목: '+(subj||'(미선택)')+'\n════════════════════════════════════\n';
+  SECTIONS.forEach(sec=>{
+    const lines=[];
+    sec.fields.forEach(f=>{
+      if(f.key==='instructor_name'||f.key==='subject') return;
+      if(f.subject && f.subject!==subj) return;
+      const val=(v[f.key]||'').trim(); if(!val) return;
+      const lab=f.label.replace(/\(.*$/,'').trim();
+      lines.push('· '+lab+': '+val);
+    });
+    if(lines.length) out+='\n['+sec.title.replace(/^\d+\.\s*/,'')+']\n'+lines.join('\n')+'\n';
+  });
+  out+='\n────────────────────────────────────\n[생성 지침·정직성] 위 자료에 없는 성과·합격·수강생 수·할인율은 지어내지 말 것(빈 항목 근거 사용 금지). 추정치는 \'강사 추정\', 개념 도표는 \'개념 모델\', 미공개 등급컷은 \'체감\'. 단정("무조건 1등급/100점 보장") 금지 → 완화. 산출: 랜딩/블로그/인스타 카드/유튜브 4종, 다올105 설득 7비트 순서 준수.';
+  return out;
+}
+function genOutput(){
+  if(!($('f_subject').value)){ toast('topStatus','과목을 먼저 선택해주세요.',false); return; }
+  $('outText').value=buildOutput(); $('outBox').classList.remove('hide');
+  $('outBox').scrollIntoView({behavior:'smooth'}); toast('topStatus','생성됨 ✓ 아래 텍스트를 인포에 전달하세요.',true);
+}
+async function copyOut(){ try{ await navigator.clipboard.writeText($('outText').value); toast('outStatus','복사됨 ✓',true);}catch(e){ toast('outStatus','복사 실패 — 직접 선택 복사',false);} }
+function downloadOut(){
+  const v=getVals(); const name=(v.instructor_name||'강사')+'_'+(v.school||'')+'_'+(v.exam_name||'기출분석');
+  const a=document.createElement('a'); a.href='data:text/plain;charset=utf-8,'+encodeURIComponent($('outText').value);
+  a.download=name.replace(/[\\/:*?"<>|]/g,'')+'.txt'; a.click(); toast('outStatus','다운로드 ✓',true);
+}
+function loadExample(){ setVals(EXAMPLE); autosave(); toast('topStatus','윤다올(영어·미사강변고) 예시를 채웠습니다. 생성 눌러보세요.',true); }
+function clearAll(){ if(!confirm('모두 비울까요?')) return; setVals(Object.fromEntries(SECTIONS.flatMap(s=>s.fields.map(f=>[f.key,''])))); localStorage.removeItem('gichulDraft'); $('outBox').classList.add('hide'); toast('topStatus','비웠습니다.',true); }
+function autosave(){ localStorage.setItem('gichulDraft', JSON.stringify(getVals())); }
+function saveDraft(){ autosave(); toast('topStatus','임시 저장됨 ✓ (이 브라우저)',true); }
+function toast(el,msg,ok){ const e=$(el); if(!e)return; e.textContent=msg; e.style.color= ok===false?'#c0392b':'#1f8a4c'; }
+
+renderForm();
+try{ const s=localStorage.getItem('gichulDraft'); if(s) setVals(JSON.parse(s)); }catch(e){}
+</script>
+</body>
+</html>

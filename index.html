@@ -135,6 +135,7 @@ kbd{background:var(--cream2);border:1px solid var(--line);border-radius:5px;padd
 <header class="top"><div class="wrap">
   <span class="brand">다올105 <b>배포 퍼널</b> 콘솔</span>
   <span class="spacer"></span>
+  <a class="btn ghost sm" href="기출분석_설문.html" style="text-decoration:none">📝 기출분석 설문</a>
   <a class="btn ghost sm" href="작업현황.html" style="text-decoration:none">📋 작업 현황</a>
   <button class="btn ghost sm" onclick="openDrawer()">⚙ 설정</button>
 </div></header>
@@ -408,6 +409,16 @@ const DEFAULT_RULES = `[다올105 홍보물 하우스 규칙]
 ■ 네이버 SEO
 - 제목에 지역+대상+핵심키워드. 오늘 날짜 기준 최신 기준 반영.`;
 
+// 기출분석 설문 자료가 붙으면 자동 활성화되는 전용 브레인
+const BRAIN_GICHUL = `[★기출분석 모드 — 이 자료는 특정 학교 시험의 기출분석이다]
+너는 다올105 '기출분석 콘텐츠' 전담 카피라이터다. 특정 학교의 지난 시험을 분석해 "우리 학원이 이 학교를 이렇게 대비시킨다"를 학부모에게 설득한다.
+- 강사 입력 자료(분석 대상·시험 개요·출제 분석·과목 전용·우리 대비·강사 이력·다음 실행)가 유일한 사실 원천. 없는 사실은 존재하지 않는 것으로 취급. 빈 항목은 언급·근거로 쓰지 말 것.
+- 랜딩: 설득 7비트 완결 상세페이지. 제목에 학교명+학년+시험명 특정. '등급을 가른 경계 문항'·'킬러문항'을 메인 훅. CTA는 자료의 '다음 실행'만.
+- 블로그: 제목·본문에 [학교명+학년+과목+시험명+범위 작품/단원] SEO 자연 배치. 진단→원인→해법 정보성 톤. 출처/영역 비중 숫자를 리스트로.
+- 인스타 카드: 1장=메시지 1개. 1번 훅=난이도 한 줄 또는 '등급을 가른 그 문항'. 마지막 CTA.
+- 유튜브: 게시글+고정댓글 훅.
+- 학교명을 반복 노출해 '남의 학교'가 아니라 '내 아이 학교' 이야기로. 없는 방식·커리큘럼·수치는 절대 창작 금지. 추정치='강사 추정', 미공개 등급컷='체감', 개념 도표='개념 모델' 라벨.`;
+
 // ================= 설정 저장/로드 =================
 function loadSettings(){
   $('setKey').value   = localStorage.getItem('anthKey')||'';
@@ -476,8 +487,10 @@ function delPhoto(i){ S.photos.splice(i,1); renderPhotos(); }
 // ================= 시스템 프롬프트 (브레인) =================
 function systemPrompt(){
   const rules = localStorage.getItem('houseRules') || DEFAULT_RULES;
+  const draft = ($('inDraft') && $('inDraft').value) || '';
+  const gichul = /기출분석 · 강사 입력 자료|출제 분석|킬러문항|등급을 가른|서술형/.test(draft) ? ('\n\n'+BRAIN_GICHUL) : '';
   return `당신은 대한민국 학원(다올105, 하남 미사) 인포데스크의 마케팅 카피라이터입니다.
-강사가 준 원본 자료로 4종 배포물을 만듭니다: (1) 설득구조 랜딩 (2) 네이버 블로그 (3) 인스타 (4) 유튜브. 카드뉴스 10장 문구도 만듭니다.
+강사가 준 원본 자료로 4종 배포물을 만듭니다: (1) 설득구조 랜딩 (2) 네이버 블로그 (3) 인스타 (4) 유튜브. 카드뉴스 10장 문구도 만듭니다.${gichul}
 
 [다올105 설득 구조 — 모든 원고(랜딩·블로그·인스타·유튜브·카드)가 이 7비트를 따른다]
 1) 공감 훅: 학부모가 속으로 하던 말을 한 줄로. 판단·훈계 금지. (예 "학원은 다니는데 왜 안 오를까")
