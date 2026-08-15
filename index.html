@@ -165,12 +165,12 @@ kbd{background:var(--cream2);border:1px solid var(--line);border-radius:5px;padd
       </div>
       <div style="margin-top:14px">
         <label class="fld" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">블로그 초안 · 강사가 준 자료
-          <label class="btn line sm" style="cursor:pointer;font-weight:600;margin:0">📎 파일 불러오기 (txt·docx·pdf)
-            <input type="file" id="draftFile" accept=".txt,.md,.csv,.rtf,.docx,.pdf,.json" onchange="loadDraftFile(event)" style="display:none"></label>
+          <label class="btn line sm" style="cursor:pointer;font-weight:600;margin:0">📎 파일 불러오기 (txt·docx·pdf·hwp·hwpx)
+            <input type="file" id="draftFile" accept=".txt,.md,.csv,.rtf,.docx,.pdf,.hwp,.hwpx,.json" onchange="loadDraftFile(event)" style="display:none"></label>
           <span class="hint" style="margin:0">붙여넣기 또는 파일 둘 다 OK</span>
         </label>
-        <textarea id="inDraft" rows="9" placeholder="강사가 준 소개글·수업방식·이력·성과(사실만)를 붙여넣거나, 위 '파일 불러오기'로 강사가 준 파일(txt/docx/pdf)을 불러오세요. 인포데스크가 여기에 '글을 입혀' 4종을 만듭니다."></textarea>
-        <p class="hint">⚠️ 정직성 원칙: 여기에 <b>없는 성과·합격 숫자·할인율은 지어내지 않습니다.</b> 애매하면 표현을 완화합니다. · 한글(hwp)은 텍스트 복사해 붙여넣거나 PDF로 저장해 올려주세요.</p>
+        <textarea id="inDraft" rows="9" placeholder="강사가 준 소개글·수업방식·이력·성과(사실만)를 붙여넣거나, 위 '파일 불러오기'로 강사가 준 파일(txt/docx/pdf/hwp/hwpx)을 불러오세요. 인포데스크가 여기에 '글을 입혀' 4종을 만듭니다."></textarea>
+        <p class="hint">⚠️ 정직성 원칙: 여기에 <b>없는 성과·합격 숫자·할인율은 지어내지 않습니다.</b> 애매하면 표현을 완화합니다. · 한글(hwp)은 서식이 복잡하면 일부 누락될 수 있으니 <b>불러온 내용을 확인</b>하고 생성하세요.</p>
       </div>
       <div style="margin-top:14px">
         <label class="fld">사진 업로드 (강사 사진·수업 사진 · 카드뉴스/블로그용)</label>
@@ -506,8 +506,70 @@ async function extractFile(file){
     let t=''; for(let i=1;i<=pdf.numPages;i++){ const pg=await pdf.getPage(i); const tc=await pg.getTextContent(); t+=tc.items.map(x=>x.str).join(' ')+'\n'; }
     return t.trim();
   }
-  if(/\.(hwp|hwpx)$/.test(name)) throw new Error('한글(hwp/hwpx)은 자동 추출이 어렵습니다 — 텍스트를 복사해 붙여넣거나 PDF로 저장해 올려주세요.');
-  throw new Error('지원하지 않는 형식입니다. txt/docx/pdf 또는 텍스트 붙여넣기를 이용하세요.');
+  if(name.endsWith('.hwpx')){
+    await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+    const zip=await window.JSZip.loadAsync(await file.arrayBuffer());
+    const secs=Object.keys(zip.files).filter(n=>/Contents\/section\d+\.xml$/i.test(n)).sort();
+    const dec=s=>s.replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#(\d+);/g,(_,d)=>String.fromCharCode(+d)).replace(/&amp;/g,'&');
+    let out='';
+    for(const n of secs){
+      const xml=await zip.files[n].async('string');
+      const paras=xml.match(/<hp:p[ >][\s\S]*?<\/hp:p>/g);
+      if(paras&&paras.length){
+        paras.forEach(p=>{ let line=''; (p.match(/<hp:t[^>]*>[\s\S]*?<\/hp:t>/g)||[]).forEach(seg=>line+=dec(seg)); if(line.trim()) out+=line+'\n'; });
+      }else{
+        (xml.match(/<hp:t[^>]*>[\s\S]*?<\/hp:t>/g)||[]).forEach(seg=>out+=dec(seg)); out+='\n';
+      }
+    }
+    return out.trim();
+  }
+  if(name.endsWith('.hwp')){
+    await loadScript('https://cdn.jsdelivr.net/npm/cfb@1.2.2/dist/cfb.min.js');
+    await loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js');
+    return extractHwpBinary(new Uint8Array(await file.arrayBuffer()));
+  }
+  throw new Error('지원하지 않는 형식입니다. txt/docx/pdf/hwp/hwpx 또는 텍스트 붙여넣기를 이용하세요.');
+}
+// HWP(바이너리 CFB) 텍스트 추출 — best effort
+function extractHwpBinary(u8){
+  const cfb=window.CFB.read(u8,{type:'array'});
+  let compressed=true;
+  const fh=window.CFB.find(cfb,'FileHeader');
+  if(fh&&fh.content&&fh.content.length>36){ compressed=((fh.content[36]&1)===1); }
+  const secs=[];
+  (cfb.FileIndex||[]).forEach((f,i)=>{ const p=(cfb.FullPaths||[])[i]||f.name||''; if(/BodyText[\/\\]Section\d+$/i.test(p)||/^Section\d+$/i.test(f.name||'')) secs.push({p,f}); });
+  secs.sort((a,b)=>String(a.p).localeCompare(String(b.p)));
+  let out='';
+  secs.forEach(({f})=>{
+    let data=new Uint8Array(f.content);
+    if(compressed){ try{ data=window.pako.inflateRaw(data); }catch(e){ try{ data=window.pako.inflate(data);}catch(e2){ return; } } }
+    out += parseHwpRecords(data)+'\n';
+  });
+  const t=out.trim();
+  if(!t) throw new Error('hwp에서 텍스트를 찾지 못했습니다 — hwpx로 저장하거나 텍스트를 붙여넣어 주세요.');
+  return t;
+}
+function parseHwpRecords(data){
+  const dv=new DataView(data.buffer,data.byteOffset,data.byteLength);
+  const EXT=new Set([1,2,3,4,11,12,14,15,16,17,18,21,22,23]);
+  let pos=0,text='';
+  while(pos+4<=data.length){
+    const h=dv.getUint32(pos,true); pos+=4;
+    const tag=h&0x3FF; let size=(h>>>20)&0xFFF;
+    if(size===0xFFF){ if(pos+4>data.length)break; size=dv.getUint32(pos,true); pos+=4; }
+    if(pos+size>data.length) break;
+    if(tag===67){ // HWPTAG_PARA_TEXT
+      let i=0;
+      while(i+1<size){
+        const ch=dv.getUint16(pos+i,true); i+=2;
+        if(ch<32){ if(ch===10||ch===13) text+='\n'; else if(ch===9) text+='\t'; if(EXT.has(ch)) i+=14; }
+        else text+=String.fromCharCode(ch);
+      }
+      text+='\n';
+    }
+    pos+=size;
+  }
+  return text;
 }
 async function loadDraftFile(ev){
   const f=ev.target.files[0]; if(!f){ return; }

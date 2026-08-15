@@ -1,0 +1,14 @@
+name = "daol-funnel"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# 배포: cd backend && wrangler deploy
+# 시크릿은 대시보드 Settings→Variables 또는:
+#   wrangler secret put IG_ACCESS_TOKEN
+#   wrangler secret put IG_USER_ID
+#   wrangler secret put YT_CLIENT_ID
+#   wrangler secret put YT_CLIENT_SECRET
+#   wrangler secret put YT_REFRESH_TOKEN
+#   wrangler secret put GH_TOKEN
+[vars]
+ALLOW_ORIGIN = "https://jayu0422-blip.github.io"
