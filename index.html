@@ -164,9 +164,13 @@ kbd{background:var(--cream2);border:1px solid var(--line);border-radius:5px;padd
         <div><label class="fld">랜딩 배포 레포명 (github.io 경로)</label><input type="text" id="inRepo" placeholder="예: daol105-math"></div>
       </div>
       <div style="margin-top:14px">
-        <label class="fld">블로그 초안 · 강사가 준 자료 (그대로 붙여넣기)</label>
-        <textarea id="inDraft" rows="9" placeholder="강사가 준 소개글, 수업 방식, 시간표, 이력, 성과(사실만), 하고 싶은 말 등을 그대로 붙여넣으세요. 인포데스크가 여기에 '글을 입혀' 4종을 만듭니다."></textarea>
-        <p class="hint">⚠️ 정직성 원칙: 여기에 <b>없는 성과·합격 숫자·할인율은 지어내지 않습니다.</b> 애매하면 표현을 완화합니다.</p>
+        <label class="fld" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">블로그 초안 · 강사가 준 자료
+          <label class="btn line sm" style="cursor:pointer;font-weight:600;margin:0">📎 파일 불러오기 (txt·docx·pdf)
+            <input type="file" id="draftFile" accept=".txt,.md,.csv,.rtf,.docx,.pdf,.json" onchange="loadDraftFile(event)" style="display:none"></label>
+          <span class="hint" style="margin:0">붙여넣기 또는 파일 둘 다 OK</span>
+        </label>
+        <textarea id="inDraft" rows="9" placeholder="강사가 준 소개글·수업방식·이력·성과(사실만)를 붙여넣거나, 위 '파일 불러오기'로 강사가 준 파일(txt/docx/pdf)을 불러오세요. 인포데스크가 여기에 '글을 입혀' 4종을 만듭니다."></textarea>
+        <p class="hint">⚠️ 정직성 원칙: 여기에 <b>없는 성과·합격 숫자·할인율은 지어내지 않습니다.</b> 애매하면 표현을 완화합니다. · 한글(hwp)은 텍스트 복사해 붙여넣거나 PDF로 저장해 올려주세요.</p>
       </div>
       <div style="margin-top:14px">
         <label class="fld">사진 업로드 (강사 사진·수업 사진 · 카드뉴스/블로그용)</label>
@@ -483,6 +487,40 @@ function renderPhotos(){
     `<div class="ph"><img src="${p.url}"><b onclick="delPhoto(${i})">×</b></div>`).join('');
 }
 function delPhoto(i){ S.photos.splice(i,1); renderPhotos(); }
+
+// ================= 강사 자료 파일 불러오기 (txt/docx/pdf) =================
+function loadScript(src){ return new Promise((res,rej)=>{ if([...document.scripts].some(s=>s.src===src)) return res(); const s=document.createElement('script'); s.src=src; s.onload=()=>res(); s.onerror=()=>rej(new Error('라이브러리 로드 실패(인터넷 확인)')); document.head.appendChild(s); }); }
+async function extractFile(file){
+  const name=file.name.toLowerCase();
+  if(/\.(txt|md|csv|rtf|json)$/.test(name)) return await file.text();
+  if(name.endsWith('.docx')){
+    await loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js');
+    const buf=await file.arrayBuffer();
+    const r=await window.mammoth.extractRawText({arrayBuffer:buf});
+    return (r&&r.value||'').trim();
+  }
+  if(name.endsWith('.pdf')){
+    await loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js');
+    const lib=window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    const buf=await file.arrayBuffer(); const pdf=await lib.getDocument({data:buf}).promise;
+    let t=''; for(let i=1;i<=pdf.numPages;i++){ const pg=await pdf.getPage(i); const tc=await pg.getTextContent(); t+=tc.items.map(x=>x.str).join(' ')+'\n'; }
+    return t.trim();
+  }
+  if(/\.(hwp|hwpx)$/.test(name)) throw new Error('한글(hwp/hwpx)은 자동 추출이 어렵습니다 — 텍스트를 복사해 붙여넣거나 PDF로 저장해 올려주세요.');
+  throw new Error('지원하지 않는 형식입니다. txt/docx/pdf 또는 텍스트 붙여넣기를 이용하세요.');
+}
+async function loadDraftFile(ev){
+  const f=ev.target.files[0]; if(!f){ return; }
+  $('genStatus').innerHTML='<span class="spin"></span>파일 읽는 중… ('+f.name+')';
+  try{
+    const txt=await extractFile(f);
+    if(!txt){ throw new Error('파일에서 텍스트를 찾지 못했습니다(스캔 이미지 PDF일 수 있음).'); }
+    const cur=$('inDraft').value.trim();
+    $('inDraft').value = cur ? (cur+'\n\n'+txt) : txt;
+    $('genStatus').innerHTML=''; toast('genStatus','파일 불러옴 ✓ ('+f.name+') — 내용 확인 후 생성하세요.',true);
+  }catch(e){ $('genStatus').innerHTML=''; toast('genStatus',e.message,false); }
+  ev.target.value='';
+}
 
 // ================= 시스템 프롬프트 (브레인) =================
 function systemPrompt(){
