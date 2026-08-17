@@ -98,6 +98,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15p
 /* N12: 색만으로 구분하지 않는다(색각이상 8%) — 테두리 모양·굵기로도 구분 */
 .cell.clinic{background:#f5f3ff;border:2px dashed #c4b5fd;color:#5b21b6}  /* 클리닉 = 점선 */
 .cell.boost{background:#fdf2f8;border:2px solid #f9a8d4;color:#9d174d}    /* 직전보강 = 굵은 실선 */
+/* 같은 날 정규+클리닉 — 초록 바탕에 보라 점선 테두리로 둘 다임을 표시 */
+.cell.both{background:#ecfdf5;border:2px dashed #a78bfa;color:#065f46}
 .cell.cancel{background:#f3f4f6;border-color:#d1d5db;color:#9ca3af;text-decoration:line-through}
 .cell .exam{position:absolute;top:2px;right:3px;font-size:8px;color:var(--brand-ink);font-weight:900}
 .legend{display:flex;flex-wrap:wrap;gap:9px;padding:10px 4px 2px;font-size:11.5px;color:var(--muted);font-weight:700}
@@ -126,8 +128,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15p
   border-radius:12px;background:#fff;padding:10px 13px;margin-bottom:8px;cursor:pointer;text-align:left;font:inherit}
 .opt .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex:none}
 .opt .tx{flex:1;min-width:0}
-.opt .tt{font-weight:800;font-size:14.5px}
-.opt .td{font-size:12px;color:var(--muted);margin-top:1px}
+/* span이 inline이라 "수업정규 수업으로 셉니다"처럼 붙어 나오던 것 수정 */
+.opt .tt{display:block;font-weight:800;font-size:14.5px;line-height:1.35}
+.opt .td{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4}
 .opt.sel{border-color:var(--brand);background:#fffbeb;box-shadow:0 0 0 2px #fde68a inset}
 
 /* ── 폼 ── */
@@ -334,10 +337,20 @@ function seedMarks(g){
   }
   return m;
 }
+/* 원장 확정(2026-08-17): 클리닉은 정규 회차로 세지 않는다.
+   같은 날 정규+클리닉이 함께 있는 경우가 실제로 있다(민귀홍 미강고2 일요일: 14~17 정규 + 17~18 클리닉).
+   또 학교가 다른 두 반이 같은 날 정규/클리닉으로 엇갈려 들어간다(황웅 미사고1 화=정규 / 미사고2 화=클리닉).
+   클리닉 쪽은 조교가 본다 — 그래서 강사 정규 회차에 넣지 않는 것이 맞다. */
 function countOf(gid){
   const m=S.data[gid].marks; let 정=0,클=0,보=0,휴=0;
-  Object.values(m).forEach(v=>{ if(v==="정")정++; else if(v==="클")클++; else if(v==="보")보++; else if(v==="휴")휴++; });
-  return {정,클,보,휴, total:정+보};
+  Object.values(m).forEach(v=>{
+    if(v==="정"){정++;}
+    else if(v==="클"){클++;}
+    else if(v==="정클"){정++;클++;}      // 같은 날 둘 다
+    else if(v==="보"){보++;}
+    else if(v==="휴"){휴++;}
+  });
+  return {정,클,보,휴};
 }
 /* N5: "기준 주당×4"는 원장 미결(기획서 §10 결정4)인데 화면이 그 숫자로 '부족'을 단정하면
    초기 상태에서 3묶음 중 2개가 오경보를 띄운다. 게다가 지시 3("회차는 무조건 달라진다")과 정면 충돌.
@@ -347,13 +360,15 @@ function countBlock(g, c){
   const holiHit=Object.keys(st.marks).filter(k=>st.marks[k]==="휴" && HOLI[k]).sort();
   const offNote = holiHit.length
     ? ` · 공휴일로 ${holiHit.length}회 빠짐(${holiHit.map(k=>Number(k.slice(8,10))+"일").join(", ")})` : "";
+  /* "계약 주 N회"라는 표현은 뺐다 — 뜻이 불명확하고, 10월부터 회차 기준으로 바뀔 예정이라
+     지금 기준선을 화면에 박아두면 나중에 두 번 고쳐야 한다. 사실(횟수·사유)만 적는다. */
   return `<div class="cnt">
     <span>정규 <span class="n">${c.정}</span>회</span>
     ${c.클?`<span class="badge b-clinic">클리닉 ${c.클}회</span>`:""}
     ${c.보?`<span class="badge b-need">직전보강 ${c.보}회</span>`:""}
     ${c.휴?`<span class="muted">휴강 ${c.휴}</span>`:""}
     <span style="width:100%;font-size:12px;color:var(--muted);font-weight:600">
-      근무일 ${c.정+c.클+c.보}일 · 계약 주 ${g.weekN}회${offNote}</span>
+      선생님 출근 ${c.정+c.보}일${c.클?` · 조교 클리닉 ${c.클}일`:""}${offNote}</span>
   </div>`;
 }
 
@@ -474,6 +489,7 @@ function renderCal(){
     if(!mk){ cls+= HOLI[key]?" holi":" off"; }
     else if(mk==="정"){ cls+=" on"; tag="수업"; }
     else if(mk==="클"){ cls+=" clinic"; tag="클리닉"; }
+    else if(mk==="정클"){ cls+=" both"; tag="수업+클"; }
     else if(mk==="보"){ cls+=" boost"; tag="직전보강"; }
     else if(mk==="휴"){ cls+=" cancel"; tag="휴강"; }
     cells+=`<button class="${cls}" data-d="${d}" aria-label="${MONTH}월 ${d}일 ${tag||"수업없음"}">
@@ -501,7 +517,8 @@ function renderCal(){
      <div class="calside">
       <div class="legend">
         <span><i style="background:#6ee7b7"></i>수업</span>
-        <span><i style="background:#c4b5fd"></i>클리닉</span>
+        <span><i style="background:#c4b5fd"></i>클리닉(조교)</span>
+        <span><i style="background:#a78bfa"></i>수업+클리닉</span>
         <span><i style="background:#f9a8d4"></i>직전보강</span>
         <span><i style="background:#d1d5db"></i>휴강</span>
         <span><i style="background:#fbd5d1"></i>공휴일</span>
@@ -529,7 +546,7 @@ function renderCal(){
       ()=>{ st.marks=JSON.parse(before); st.touchedCal=beforeTouched; render(); });
     render();
   };
-  setBar(`<b>정규 ${c.정}회</b>${c.클?` · 클리닉 ${c.클}회`:""}<br>근무일 ${c.정+c.클+c.보}일`,
+  setBar(`<b>정규 ${c.정}회</b>${c.보?` + 직전보강 ${c.보}`:""}<br>${c.클?`조교 클리닉 ${c.클}일 (회차 제외)`:"클리닉 없음"}`,
     "이 묶음 확인 완료", ()=>{
       st.touchedCal=true; S.step=1; S.openGroup=null; render();
     });
@@ -577,9 +594,10 @@ function openDay(gid, d){
   const st=S.data[gid], key=iso(YEAR,MONTH,d), cur=st.marks[key]||null;
   const w=DOWN[dowOf(YEAR,MONTH,d)], holi=HOLI[key];
   const opts=[
-    ["정","🟢","수업","정규 수업으로 셉니다"],
-    ["클","🟣","클리닉","보충·질의 시간. 정규 회차에 안 셉니다"],
-    ["보","🌸","직전보강","시험 직전 추가 수업"],
+    ["정","🟢","수업","정규 수업 — 회차로 셉니다"],
+    ["클","🟣","클리닉","조교가 보는 보충·질의 시간. 정규 회차에 넣지 않습니다"],
+    ["정클","🟢🟣","수업 + 클리닉","같은 날 둘 다 있는 경우 (예: 14~17 수업, 17~18 클리닉)"],
+    ["보","🌸","직전보강","시험 직전에 따로 하는 추가 수업"],
     ["휴","⬜","휴강","이 날은 수업하지 않습니다"],
     [null,"·","수업 없는 날","달력에서 비웁니다"],
   ];
@@ -610,17 +628,19 @@ function openFee(gid){
   pan.innerHTML=`
     <div class="hdl"></div>
     <h3>교재비 · ${esc(g.label)}</h3>
-    <div class="sh">교재비는 <b>교습비에 포함</b>해 교육청에 신고합니다. 셋 중 하나를 반드시 고르셔야 합니다.</div>
+    <div class="sh">학원이 <b>청구 가능한 교재비</b>를 정해 두고, 그 금액을 <b>교습비 신고에 포함</b>해 신고합니다.
+      셋 중 하나를 반드시 고르셔야 합니다.</div>
     <button class="opt ${st.feeMode==="none"?"sel":""}" data-m="none">
       <span class="ic" style="background:#f1f5f9">⬜</span>
       <span class="tx"><span class="tt">없음</span><span class="td">교재를 쓰지 않습니다</span></span></button>
     <button class="opt ${st.feeMode==="self"?"sel":""}" data-m="self">
       <span class="ic" style="background:#eff6ff">🛒</span>
       <span class="tx"><span class="tt">개별구매</span>
-        <span class="td">학생이 직접 삽니다. 학원이 청구하지 않습니다</span></span></button>
+        <span class="td">학생이 직접 삽니다. 학원이 청구하지 않고 신고에도 안 들어갑니다</span></span></button>
     <button class="opt ${st.feeMode==="amount"?"sel":""}" data-m="amount">
       <span class="ic" style="background:#fff7ed">💰</span>
-      <span class="tx"><span class="tt">학원 청구</span><span class="td">아래 구간에서 금액 선택</span></span></button>
+      <span class="tx"><span class="tt">학원 청구</span>
+        <span class="td">학원이 정한 아래 구간에서만 고를 수 있습니다</span></span></button>
     <div id="feeAmtBox" class="${st.feeMode==="amount"?"":"hide"}">
       <div class="f"><label>금액 <span class="req">*</span></label>
         <select id="feeAmt">
