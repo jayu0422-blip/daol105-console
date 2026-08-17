@@ -229,7 +229,11 @@ try{ const s=localStorage.getItem('gichulDraft'); if(s) setVals(JSON.parse(s)); 
   applySubjectVisibility(); autosave();
   const per=p.get('period'), sc=p.get('school'), tc=p.get('teacher');
   if(per||sc||tc){ const b=document.createElement('div'); b.className='intro'; b.style.borderColor='#bfe3cd'; b.style.background='#eaf6ef'; b.style.color='#1f5f3d';
-    b.innerHTML='📊 <b>'+[per,sc].filter(Boolean).join(' · ')+'</b> 기출분석 설문'+(tc?(' ('+tc+' 선생님)'):'')+' — 강사명·학교가 자동 입력됐습니다. 시험지 분석 정보만 채워주세요.';
+    /* 주소창에서 온 값이라 그대로 innerHTML 에 넣으면 링크 하나로 스크립트가 실행된다.
+       이 페이지와 같은 저장소에 API 키·깃허브 토큰이 브라우저에 저장돼 있어 위험하다. */
+    const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    b.innerHTML='📊 <b>'+esc([per,sc].filter(Boolean).join(' · '))+'</b> 기출분석 설문'
+      +(tc?(' ('+esc(tc)+' 선생님)'):'')+' — 강사명·학교가 자동 입력됐습니다. 시험지 분석 정보만 채워주세요.';
     document.querySelector('.wrap').insertBefore(b, $('form')); }
 })();
 </script>
