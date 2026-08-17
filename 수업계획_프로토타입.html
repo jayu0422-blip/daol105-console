@@ -6,6 +6,7 @@
 <title>다올105 · 월간 수업계획 제출 (프로토타입)</title>
 <style>
 :root{
+  color-scheme:light;   /* N12: 안드로이드 강제 다크가 팔레트를 뒤집는 것 차단 */
   --font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --ink:#1b1f2a; --muted:#6b7280; --line:#e5e7eb; --bg:#f4f6f9; --card:#fff;
   --brand:#f59e0b; --brand-ink:#b45309; --ok:#059669; --danger:#dc2626; --info:#2563eb;
@@ -73,10 +74,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15p
 .bar .sum b{color:var(--ink);font-size:13.5px}
 
 /* ── 달력 ── */
-.calwrap{padding:0 10px 12px}
+/* N7: 셀이 aspect-ratio+min-height로 44px를 강제해 7열×44+갭24=332 > 326이 되어
+   토요일 열이 그리드 밖으로 삐져나갔다(페이지 스크롤은 안 생겨 눈에 안 띔).
+   좌우 패딩 10→6, 갭 4→3으로 줄여 열당 45px 이상 확보. */
+.calwrap{padding:0 6px 12px}
 .calhd{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 8px}
 .calhd .m{font-weight:800;font-size:15px}
-.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 .dow{text-align:center;font-size:11px;font-weight:800;color:#9099ab;padding:2px 0}
 .dow.sun{color:var(--danger)}.dow.sat{color:var(--info)}
 .cell{aspect-ratio:1/1;min-height:44px;border:1px solid #eef0f4;border-radius:10px;background:#fff;
@@ -84,12 +88,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15p
   font-size:13px;font-weight:700;cursor:pointer;position:relative;padding:0}
 .cell.pad{border:none;background:transparent;pointer-events:none}
 .cell .d{line-height:1}
-.cell .t{font-size:9px;font-weight:800;line-height:1}
-.cell.off{color:#c3c8d2;background:#fafbfc}         /* 수업 없는 요일 */
+.cell .t{font-size:10px;font-weight:800;line-height:1}   /* N12: 9px→10px (40~50대 가독성) */
+/* N12: 기존 #c3c8d2는 대비 1.62:1 — "누를 수 없는 칸"으로 읽혀서
+   일요일·공휴일을 강사가 직접 수업으로 지정하라는 지시2를 방해했다. */
+.cell.off{color:#8b93a3;background:#fafbfc}         /* 수업 없는 요일(누를 수 있음) */
+.cell:active{transform:scale(.94);box-shadow:0 0 0 3px var(--brand)}
 .cell.holi{background:#fef3f2;border-color:#fbd5d1;color:var(--danger)}
 .cell.on{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}          /* 정규 */
-.cell.clinic{background:#f5f3ff;border-color:#c4b5fd;color:#5b21b6}      /* 클리닉 */
-.cell.boost{background:#fdf2f8;border-color:#f9a8d4;color:#9d174d}       /* 직전보강 */
+/* N12: 색만으로 구분하지 않는다(색각이상 8%) — 테두리 모양·굵기로도 구분 */
+.cell.clinic{background:#f5f3ff;border:2px dashed #c4b5fd;color:#5b21b6}  /* 클리닉 = 점선 */
+.cell.boost{background:#fdf2f8;border:2px solid #f9a8d4;color:#9d174d}    /* 직전보강 = 굵은 실선 */
 .cell.cancel{background:#f3f4f6;border-color:#d1d5db;color:#9ca3af;text-decoration:line-through}
 .cell .exam{position:absolute;top:2px;right:3px;font-size:8px;color:var(--brand-ink);font-weight:900}
 .legend{display:flex;flex-wrap:wrap;gap:9px;padding:10px 4px 2px;font-size:11.5px;color:var(--muted);font-weight:700}
@@ -106,7 +114,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15p
 .sheet.open{display:block}
 .sheet .dim{position:absolute;inset:0;background:rgba(15,20,30,.45)}
 .sheet .pan{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;
-  padding:8px 14px calc(16px + env(safe-area-inset-bottom,0px));max-height:82vh;overflow:auto}
+  padding:8px 14px calc(16px + env(safe-area-inset-bottom,0px));max-height:82dvh;overflow:auto;
+  overscroll-behavior:contain}
+/* N9: 키보드가 올라오면 저장 버튼이 화면 밖으로 밀린다 → 시트 하단에 고정 */
+.sheet .pan .stick{position:sticky;bottom:0;background:#fff;padding:10px 0 2px;margin-top:6px;
+  box-shadow:0 -8px 12px -8px rgba(0,0,0,.12)}
 .sheet .hdl{width:38px;height:4px;border-radius:99px;background:#d7dbe2;margin:6px auto 12px}
 .sheet h3{margin:0 0 3px;font-size:16.5px;font-weight:800}
 .sheet .sh{font-size:12.5px;color:var(--muted);margin-bottom:12px}
@@ -133,11 +145,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15p
 .gate .gt{font-weight:800;color:var(--brand-ink);font-size:13.5px;margin-bottom:3px}
 .gate .gd{font-size:12.5px;color:#92400e;line-height:1.55}
 
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--barh) + 18px);z-index:70;
-  background:#1f2937;color:#fff;font-size:13.5px;font-weight:700;border-radius:11px;padding:11px 15px;
+/* N3: 노치 기기에서 하단바 실제 높이는 76+env 이므로 토스트도 env를 더해야 안 겹친다.
+   되돌리기는 이 화면의 유일한 실행취소 수단이라 32px는 위험 → 44px. */
+.toast{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(var(--barh) + env(safe-area-inset-bottom,0px) + 18px);z-index:70;
+  background:#1f2937;color:#fff;font-size:13.5px;font-weight:700;border-radius:11px;padding:8px 12px;
   display:flex;align-items:center;gap:12px;box-shadow:0 8px 26px rgba(0,0,0,.24);max-width:calc(100% - 28px)}
 .toast button{background:none;border:none;color:#fbbf24;font:inherit;font-weight:800;cursor:pointer;
-  min-height:32px;padding:0 4px}
+  min-height:44px;padding:0 12px}
 .hide{display:none!important}
 .muted{color:var(--muted)}
 .log{font-size:12px;color:var(--muted);padding:8px 4px 0;line-height:1.7}
@@ -324,7 +339,23 @@ function countOf(gid){
   Object.values(m).forEach(v=>{ if(v==="정")정++; else if(v==="클")클++; else if(v==="보")보++; else if(v==="휴")휴++; });
   return {정,클,보,휴, total:정+보};
 }
-function baseTarget(g){ return g.weekN*4; }   // 기준 = 주당×4 (원장 결정 대기 → 표시만)
+/* N5: "기준 주당×4"는 원장 미결(기획서 §10 결정4)인데 화면이 그 숫자로 '부족'을 단정하면
+   초기 상태에서 3묶음 중 2개가 오경보를 띄운다. 게다가 지시 3("회차는 무조건 달라진다")과 정면 충돌.
+   → 판정을 하지 않고 사실만 나열한다. 클리닉은 정규와 분리하되 근무일수에는 포함한다. */
+function countBlock(g, c){
+  const st=S.data[g.id];
+  const holiHit=Object.keys(st.marks).filter(k=>st.marks[k]==="휴" && HOLI[k]).sort();
+  const offNote = holiHit.length
+    ? ` · 공휴일로 ${holiHit.length}회 빠짐(${holiHit.map(k=>Number(k.slice(8,10))+"일").join(", ")})` : "";
+  return `<div class="cnt">
+    <span>정규 <span class="n">${c.정}</span>회</span>
+    ${c.클?`<span class="badge b-clinic">클리닉 ${c.클}회</span>`:""}
+    ${c.보?`<span class="badge b-need">직전보강 ${c.보}회</span>`:""}
+    ${c.휴?`<span class="muted">휴강 ${c.휴}</span>`:""}
+    <span style="width:100%;font-size:12px;color:var(--muted);font-weight:600">
+      근무일 ${c.정+c.클+c.보}일 · 계약 주 ${g.weekN}회${offNote}</span>
+  </div>`;
+}
 
 /* 게이트 판정 */
 function gateOf(gid){
@@ -339,7 +370,13 @@ function allReady(){ return GROUPS.every(g=>gateOf(g.id).length===0); }
 /* ── 렌더 ── */
 const app=document.getElementById("app");
 function render(){
-  document.getElementById("pg").style.width = (S.step/4*100)+"%";
+  /* N11: step 기준이면 교재비 시트를 닫을 때 진행바가 뒤로 간다.
+     묶음 단위로 세면 달력을 다 끝내도 교재비가 남아 0%에 머물러 "일해도 안 움직인다".
+     → 게이트 단위(묶음당 달력·교재비 2칸)로 세서 한 칸 할 때마다 움직이게 한다. */
+  const totalGates = GROUPS.length * 2;
+  const openGates  = GROUPS.reduce((a,g)=>a+gateOf(g.id).length, 0);
+  document.getElementById("pg").style.width =
+    (S.step===4 ? 100 : Math.max(4, (totalGates-openGates)/totalGates*100))+"%";
   document.getElementById("hStep").textContent = ["표지","반별 확인","수업일 달력","교재비","완료"][S.step];
   /* PC에서만 목록을 2단으로 (모바일에선 클래스가 있어도 CSS가 무시) */
   app.classList.toggle("list-2col", S.step===1);
@@ -394,13 +431,8 @@ function renderList(){
         <span class="badge ${ok?"b-ok":"b-need"}">${ok?"확인됨 ✓":"확인 "+need.length+"건"}</span>
       </div>
       <div style="padding:0 14px 12px">
-        <div class="cnt ${c.total<baseTarget(g)?"warn":""}">
-          <span>9월 <span class="n">${c.total}</span>회</span>
-          <span class="muted">기준 ${baseTarget(g)}회</span>
-          ${c.클?`<span class="badge b-clinic">클리닉 ${c.클}</span>`:""}
-          ${c.휴?`<span class="muted">휴강 ${c.휴}</span>`:""}
-          ${!st.touchedCal?`<span class="badge b-need">달력 확인 필요</span>`:""}
-        </div>
+        ${countBlock(g, c)}
+        ${!st.touchedCal?`<div style="margin:8px 4px 0"><span class="badge b-need">달력 확인 필요</span></div>`:""}
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn sm" style="flex:1" data-cal="${g.id}">📅 수업일 ${st.touchedCal?"수정":"확인"}</button>
           <button class="btn sm" style="flex:1" data-fee="${g.id}">📗 교재비 · ${esc(feeTxt)}</button>
@@ -412,15 +444,17 @@ function renderList(){
   app.innerHTML = h;
   app.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ S.openGroup=b.dataset.cal; S.step=2; render(); });
   app.querySelectorAll("[data-fee]").forEach(b=>b.onclick=()=>openFee(b.dataset.fee));
+  /* N6: 예전엔 [확인 완료]와 [제출]이 같은 노드·같은 색·같은 좌표라 더블탭이면 바로 제출됐다.
+     제출만 초록(.ok)으로 분리하고, 미완료면 '제출' 흉내를 내지 않고 곧장 해당 묶음으로 보낸다. */
   const done = allReady();
-  const tot = GROUPS.reduce((a,g)=>a+countOf(g.id).total,0);
-  setBar(`<b>9월 총 ${tot}회</b><br>${done?"확인 완료":"확인할 것 "+GROUPS.filter(g=>gateOf(g.id).length).length+"묶음"}`,
-    done?"9월 계획 제출":"제출 (확인 필요)", ()=>{
-      if(!done){ toast("확인 안 된 묶음이 있습니다","이동",()=>{
-          const g=GROUPS.find(x=>gateOf(x.id).length); if(g){ S.openGroup=g.id; S.step=2; render(); }
-        }); return; }
+  const remain = GROUPS.filter(g=>gateOf(g.id).length).length;
+  const tot = GROUPS.reduce((a,g)=>a+countOf(g.id).정,0);
+  setBar(`<b>${MONTH}월 정규 ${tot}회</b><br>${done?"확인 완료":`확인할 것 ${remain}묶음`}`,
+    done?`${MONTH}월 계획 제출`:`확인할 것 ${remain}묶음 →`, ()=>{
+      if(!done){ const g=GROUPS.find(x=>gateOf(x.id).length);
+                 if(g){ S.openGroup=g.id; S.step=2; render(); } return; }
       S.step=4; render();
-    }, !done);
+    });
 }
 
 function renderLog(){
@@ -447,7 +481,7 @@ function renderCal(){
       ${HOLI[key]?'<span class="exam">휴</span>':""}
     </button>`;
   }
-  const c=countOf(g.id), tgt=baseTarget(g);
+  const c=countOf(g.id);
   app.innerHTML=`
   <div class="card">
     <div class="ch">
@@ -472,12 +506,7 @@ function renderCal(){
         <span><i style="background:#d1d5db"></i>휴강</span>
         <span><i style="background:#fbd5d1"></i>공휴일</span>
       </div>
-      <div class="cnt ${c.total<tgt?"warn":""}">
-        <span>정규+보강 <span class="n">${c.total}</span>회</span>
-        <span class="muted">기준 ${tgt}회</span>
-        ${c.클?`<span class="badge b-clinic">클리닉 ${c.클}회</span>`:""}
-        ${c.total<tgt?`<span style="width:100%;font-size:12px">부족 ${tgt-c.total}회 — 보강은 <b>선택</b>입니다. 이대로 제출해도 됩니다.</span>`:""}
-      </div>
+      ${countBlock(g, c)}
       <div class="gate" style="margin:12px 4px 0">
         <div class="gt">날짜를 눌러 바꿉니다</div>
         <div class="gd">수업 → 클리닉 → 휴강 → 직전보강을 고를 수 있습니다.
@@ -487,40 +516,60 @@ function renderCal(){
     </div>
   </div>`;
   app.querySelectorAll(".cell[data-d]").forEach(b=>b.onclick=()=>openDay(g.id, Number(b.dataset.d)));
+  /* N4: 예전엔 확인 없이 즉시 파괴했고 touchedCal도 되살리지 않아
+     "직접 고친 걸 잃고도 확인됨 ✓"가 되는 조합이 있었다. */
   document.getElementById("reseed").onclick=()=>{
-    const before=JSON.stringify(st.marks);
-    st.marks=seedMarks(g);
-    S.history.push(`${g.label} — 요일 규칙대로 되돌림`);
-    toast("요일 규칙대로 되돌렸습니다","되살리기",()=>{ st.marks=JSON.parse(before); render(); });
+    const before=JSON.stringify(st.marks), beforeTouched=st.touchedCal, seed=seedMarks(g);
+    const diff=[...new Set([...Object.keys(st.marks),...Object.keys(seed)])]
+      .filter(k=>st.marks[k]!==seed[k]).length;
+    if(diff && !window.confirm(`직접 고치신 ${diff}일이 사라집니다. 되돌릴까요?`)) return;
+    st.marks=seed; st.touchedCal=false;
+    S.history.push(`${g.label} — 요일 규칙대로 되돌림 (${diff}일 초기화)`);
+    toast(`요일 규칙대로 되돌렸습니다 (${diff}일)`,"되살리기",
+      ()=>{ st.marks=JSON.parse(before); st.touchedCal=beforeTouched; render(); });
     render();
   };
-  setBar(`<b>${c.total}회</b> / 기준 ${tgt}회`, "이 묶음 확인 완료", ()=>{
-    st.touchedCal=true; S.step=1; S.openGroup=null; render();
-  });
+  setBar(`<b>정규 ${c.정}회</b>${c.클?` · 클리닉 ${c.클}회`:""}<br>근무일 ${c.정+c.클+c.보}일`,
+    "이 묶음 확인 완료", ()=>{
+      st.touchedCal=true; S.step=1; S.openGroup=null; render();
+    });
 }
 
 function renderDone(){
-  const tot=GROUPS.reduce((a,g)=>a+countOf(g.id).total,0);
+  /* N8: 저장·전송 코드가 0줄인데 "제출됨"이라고 단언하면, 시연에서 본 사람이
+     실제로 제출된 줄 안다. 프로토타입인 동안은 경고를 함께 띄운다. */
+  const tot=GROUPS.reduce((a,g)=>a+countOf(g.id).정,0);
   const cl=GROUPS.reduce((a,g)=>a+countOf(g.id).클,0);
+  const bo=GROUPS.reduce((a,g)=>a+countOf(g.id).보,0);
+  const due=dueDate(YEAR,MONTH), n=new Date();
+  const stamp=`${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())} ${pad(n.getHours())}:${pad(n.getMinutes())}`;
   app.innerHTML=`
-  <div class="card"><div class="ch"><div class="ct">✅ 9월 계획 제출됨
-    <div class="cs">제출 시각 2026-08-17 · 원장 확인 후 9/1에 반영됩니다</div></div></div>
+  <div class="card" style="border-color:#fca5a5;background:#fef2f2">
+    <div style="padding:12px 14px;font-size:12.5px;font-weight:800;color:var(--danger)">
+      ⚠ 시연용 화면입니다 — 실제로 저장·전송되지 않았습니다</div></div>
+  <div class="card"><div class="ch"><div class="ct">✅ ${MONTH}월 계획 제출됨
+    <div class="cs">제출 시각 ${stamp} · 원장 확인 후 ${MONTH}/1에 반영됩니다</div></div></div>
     <div style="padding:0 14px 14px">
-      <div class="cnt"><span>정규+보강 <span class="n">${tot}</span>회</span>
-        <span class="badge b-clinic">클리닉 ${cl}회</span></div>
-      <div class="gd" style="font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6">
-        수정이 필요하면 마감(8/22) 전까지 이 링크로 다시 들어와 고치시면 됩니다.
+      <div class="cnt"><span>정규 <span class="n">${tot}</span>회</span>
+        ${cl?`<span class="badge b-clinic">클리닉 ${cl}회</span>`:""}
+        ${bo?`<span class="badge b-need">직전보강 ${bo}회</span>`:""}</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6">
+        수정이 필요하면 마감(${due.getMonth()+1}/${due.getDate()}) 전까지 이 링크로 다시 들어와 고치시면 됩니다.
       </div>
     </div></div>`;
   setBar("제출 완료","처음으로",()=>{ S.step=0; render(); });
 }
 
-/* ── 하단바 ── */
-function setBar(sumHTML, btnText, onClick, warn){
+/* ── 하단바 ──
+   N6: 화면이 바뀐 직후 350ms 동안 잠근다. 같은 좌표에 다른 뜻의 버튼이 오므로
+   앞 화면을 향한 두 번째 탭이 새 버튼을 누르는 사고를 막는다. */
+function setBar(sumHTML, btnText, onClick){
   document.getElementById("barSum").innerHTML=sumHTML;
   const b=document.getElementById("barBtn");
-  b.textContent=btnText; b.className="btn "+(warn?"ghost":"pri");
+  b.textContent=btnText;
+  b.className="btn "+(btnText.includes("제출")?"ok":"pri");
   b.onclick=onClick;
+  b.style.pointerEvents="none"; setTimeout(()=>{ b.style.pointerEvents=""; },350);
 }
 
 /* ── 바텀시트: 날짜 성격 ── */
@@ -581,21 +630,33 @@ function openFee(gid){
         <div class="hint">정해진 8개 구간에서만 고를 수 있습니다.</div>
       </div>
     </div>
-    <div class="f"><label>사용 교재명 ${st.feeMode==="amount"||st.feeMode==="self"?'<span class="req">*</span>':'<span class="muted">(선택)</span>'}</label>
+    <div class="f"><label>사용 교재명 <span id="bookReq"></span></label>
       <input id="feeBook" value="${esc(st.textbook)}" placeholder="예) 해커스 중학영문법 2학년"/>
       <div class="hint" id="bookHint">정규 교재와 내신 교재가 다르면 <b>둘 다</b> 적어주세요.</div>
       <div class="errmsg hide" id="bookErr">교재를 청구하거나 개별구매하게 하려면 교재명이 필요합니다.</div>
     </div>
-    <button class="btn pri full" id="feeSave" style="margin-top:6px">저장</button>`;
+    <div class="stick">
+      <button class="btn pri full" id="feeSave">저장</button>
+      <button class="btn ghost full" data-close="1" style="margin-top:8px">닫기</button>
+    </div>`;
   openSheet();
 
   let mode=st.feeMode;
+  /* N2: 라벨은 '저장된 값' 기준이라 개별구매를 처음 고르면 "(선택)"인 채로 저장이 막혔다.
+     현재 고른 값(mode) 기준으로 라벨을 즉시 갱신한다. */
   const sync=()=>{
     pan.querySelectorAll(".opt").forEach(o=>o.classList.toggle("sel",o.dataset.m===mode));
     pan.querySelector("#feeAmtBox").classList.toggle("hide", mode!=="amount");
-    pan.querySelector(".f label .req, .f label .muted");
+    const req=(mode==="amount"||mode==="self");
+    pan.querySelector("#bookReq").innerHTML =
+      req ? '<span class="req">*</span>' : '<span class="muted">(선택)</span>';
+    if(!req){ pan.querySelector("#bookErr").classList.add("hide");
+              pan.querySelector("#feeBook").classList.remove("err"); }
   };
-  pan.querySelectorAll(".opt").forEach(o=>o.onclick=()=>{ mode=o.dataset.m; sync(); });
+  sync();
+  pan.querySelectorAll(".opt").forEach(o=>o.onclick=()=>{ mode=o.dataset.m; feeDirty=true; sync(); });
+  pan.querySelector("#feeBook").addEventListener("input",()=>{ feeDirty=true; });
+  pan.querySelector("#feeAmt")?.addEventListener("change",()=>{ feeDirty=true; });
   pan.querySelector("#feeSave").onclick=()=>{
     const book=pan.querySelector("#feeBook").value.trim();
     const amt=Number(pan.querySelector("#feeAmt")?.value||0);
@@ -613,7 +674,7 @@ function openFee(gid){
 /* ── 시트 공통 ── */
 function sheet(title, sub, options){
   const pan=document.getElementById("sheetPan");
-  pan.innerHTML=`<div class="hdl"></div><h3>${title}</h3><div class="sh">${sub}</div>`+
+  pan.innerHTML=`<div class="hdl"></div><h3>${esc(title)}</h3><div class="sh">${sub}</div>`+  /* N13 */
     options.map((o,i)=>`<button class="opt ${o.sel?"sel":""}" data-i="${i}">
       <span class="ic" style="background:#f8fafc">${o.ic}</span>
       <span class="tx"><span class="tt">${esc(o.tt)}</span><span class="td">${esc(o.td)}</span></span></button>`).join("")+
@@ -621,10 +682,24 @@ function sheet(title, sub, options){
   pan.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>options[Number(b.dataset.i)].on());
   openSheet();
 }
+/* N10: 안드로이드에서 시트가 열린 채 뒤로가기를 누르면 페이지를 아예 떠나
+   작성 중이던 내용이 전부 사라졌다. 히스토리 항목을 만들어 뒤로가기가 시트만 닫게 한다.
+   N9: 저장 안 한 채 배경(dim)을 탭하면 조용히 버려지던 것도 막는다. */
 const sheetEl=document.getElementById("sheet");
-function openSheet(){ sheetEl.classList.add("open"); }
-function closeSheet(){ sheetEl.classList.remove("open"); }
-sheetEl.addEventListener("click",e=>{ if(e.target.closest("[data-close]")) closeSheet(); });
+let feeDirty=false;
+function openSheet(){ sheetEl.classList.add("open"); history.pushState({sheet:1},""); }
+function closeSheet(){
+  if(!sheetEl.classList.contains("open")) return;
+  sheetEl.classList.remove("open"); feeDirty=false;
+  if(history.state && history.state.sheet) history.back();
+}
+window.addEventListener("popstate",()=>{ sheetEl.classList.remove("open"); feeDirty=false; });
+sheetEl.addEventListener("click",e=>{
+  if(!e.target.closest("[data-close]")) return;
+  if(feeDirty && e.target.classList.contains("dim") &&
+     !window.confirm("저장하지 않고 닫을까요? 입력한 교재비·교재명이 사라집니다.")) return;
+  closeSheet();
+});
 
 /* ── 토스트 (되돌리기 8초) ── */
 let toastT=null;
